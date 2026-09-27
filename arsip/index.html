@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sorogan Digital — Leger Tes Lisan</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#25543f">
+<style>
+:root{
+  --bg:#faf8f4; --kartu:#fff; --tulisan:#1c1a17; --redup:#6b6459; --garis:#e3ddd2;
+  --benar:#1f7a4d; --dibantu:#b07d18; --salah:#a8332a; --aksen:#25543f;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#16150f; --kartu:#211f18; --tulisan:#f0ece3; --redup:#9c9384; --garis:#35322a;
+  --benar:#4cc186; --dibantu:#e0a83c; --salah:#e2685c; --aksen:#8fd3b0;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tulisan);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-text-size-adjust:100%}
+.arab{font-family:"Traditional Arabic","Scheherazade New","Amiri","Noto Naskh Arabic","Segoe UI",serif;
+  direction:rtl;text-align:right;line-height:2.1}
+main{max-width:640px;margin:0 auto;padding:16px 16px 40px}
+section{display:none} section.aktif{display:block}
+h1{font-size:1.15rem;margin:0 0 4px} h2{font-size:1rem;margin:20px 0 8px;color:var(--redup)}
+.kartu{background:var(--kartu);border:1px solid var(--garis);border-radius:14px;padding:16px;margin-bottom:12px}
+button{font:inherit;color:inherit;background:var(--kartu);border:1px solid var(--garis);
+  border-radius:12px;padding:14px 16px;cursor:pointer;min-height:52px}
+button:active{transform:scale(.985)}
+.utama{background:var(--aksen);color:var(--bg);border-color:var(--aksen);font-weight:600;width:100%}
+input{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--garis);
+  border-radius:10px;padding:13px;width:100%;min-height:50px}
+label{display:block;font-size:.85rem;color:var(--redup);margin:12px 0 5px}
+.baris{display:flex;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.pilih[aria-pressed=true]{background:var(--aksen);color:var(--bg);border-color:var(--aksen)}
+.redup{color:var(--redup);font-size:.85rem}
+.tengah{text-align:center}
+
+/* ——— layar penilaian ——— */
+#bar{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  font-size:.85rem;color:var(--redup);margin-bottom:10px}
+#ibarat{font-size:1.7rem;padding:14px 10px}
+/* min-width bukan hiasan: kata Arab pendek seperti "دَم" hanya selebar ~27px,
+   di bawah ambang target sentuh. Salah ketuk = soal yang salah tercatat. */
+#ibarat button{background:none;border:none;border-radius:8px;padding:4px 10px;
+  min-height:0;min-width:44px;font:inherit;line-height:2.1}
+#ibarat button:hover,#ibarat button:focus-visible{background:var(--garis);outline:none}
+#soalTeks{font-size:1.75rem;padding:10px 4px}
+mark{background:var(--aksen);color:var(--bg);border-radius:6px;padding:1px 6px}
+#tanya{font-size:1.3rem;font-weight:600;margin:18px 0 4px;min-height:3.2rem}
+#titik{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+#titik i{width:22px;height:5px;border-radius:3px;background:var(--garis)}
+#titik i.b{background:var(--benar)} #titik i.d{background:var(--dibantu)}
+#titik i.s{background:var(--salah)} #titik i.l{background:var(--redup);opacity:.35}
+.verdict{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.verdict button{font-weight:700;font-size:1.05rem;min-height:78px;flex-direction:column;color:#fff}
+.vb{background:var(--benar);border-color:var(--benar)}
+.vd{background:var(--dibantu);border-color:var(--dibantu)}
+.vs{background:var(--salah);border-color:var(--salah)}
+.verdict small{display:block;font-weight:400;font-size:.7rem;opacity:.9}
+
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{border:1px solid var(--garis);padding:6px 8px;text-align:center}
+th{background:var(--kartu);font-weight:600} td.kiri,th.kiri{text-align:left}
+.gulir{overflow-x:auto}
+.bar{height:7px;background:var(--garis);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--aksen)}
+
+#status{position:fixed;left:0;right:0;bottom:0;padding:9px 16px;font-size:.8rem;
+  text-align:center;background:var(--dibantu);color:#000;display:none}
+#status.tampil{display:block}
+.galat{color:var(--salah);font-size:.85rem;margin-top:8px;min-height:1.2em}
+
+@media print{
+  body{background:#fff;color:#000} #status,button,.nocetak{display:none!important}
+  section{display:none} #cetak{display:block!important}
+  th,td{border:1px solid #000}
+}
+</style>
+</head>
+<body>
+<main>
+
+<!-- ═══════════ 1. MASUK ═══════════ -->
+<section id="s-masuk" class="aktif">
+  <h1>Sorogan Digital</h1>
+  <p class="redup">Leger tes lisan baca kitab — BK 1 &amp; BK 2</p>
+  <div class="kartu">
+    <label for="em">Email</label>
+    <input id="em" type="email" autocomplete="email" inputmode="email">
+    <label for="pw">Kata sandi</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <div class="baris" style="margin-top:14px">
+      <button class="utama" style="flex:2" id="bMasuk">Masuk</button>
+      <button style="flex:1" id="bDaftar">Daftar</button>
+    </div>
+    <p class="galat" id="gMasuk"></p>
+  </div>
+</section>
+
+<!-- ═══════════ 2. KLAIM ═══════════ -->
+<section id="s-klaim">
+  <h1>Kode ustadz</h1>
+  <p class="redup">Akun ini belum terhubung ke nama ustadz mana pun. Masukkan kode
+    yang diberikan pengurus. Selama belum diklaim, data santri tidak bisa dibuka.</p>
+  <div class="kartu">
+    <label for="kd">Kode (6 huruf/angka)</label>
+    <input id="kd" autocapitalize="characters" autocomplete="off" maxlength="6"
+           style="text-transform:uppercase;letter-spacing:.28em;font-size:1.3rem;text-align:center">
+    <button class="utama" id="bKlaim" style="margin-top:14px">Hubungkan</button>
+    <p class="galat" id="gKlaim"></p>
+    <button id="bKeluar1" style="width:100%;margin-top:10px">Keluar</button>
+  </div>
+</section>
+
+<!-- ═══════════ 3. MULAI SESI ═══════════ -->
+<section id="s-mulai">
+  <div id="bar"><span id="halo"></span><button id="bKeluar2" style="min-height:0;padding:6px 12px;font-size:.8rem">Keluar</button></div>
+  <h2>Tingkat</h2>
+  <div class="baris">
+    <button class="pilih" data-tingkat="BK1" style="flex:1">BK 1 — lafad</button>
+    <button class="pilih" data-tingkat="BK2" style="flex:1">BK 2 — tarkib</button>
+  </div>
+  <h2>Keperluan</h2>
+  <div class="baris">
+    <button class="pilih" data-mode="ujian" style="flex:1">Ujian</button>
+    <button class="pilih" data-mode="harian" style="flex:1">Sorogan harian</button>
+  </div>
+  <h2>Santri</h2>
+  <div class="grid" id="daftarSantri"></div>
+  <p class="redup" id="ringkasMulai" style="margin-top:16px"></p>
+  <button class="utama" id="bMulai" style="margin-top:4px">Mulai</button>
+  <button id="bHasil" style="width:100%;margin-top:10px">Lihat hasil &amp; leger</button>
+</section>
+
+<!-- ═══════════ 4. MENILAI ═══════════ -->
+<section id="s-nilai">
+  <div id="bar">
+    <span><b id="nSantri"></b> · <span id="nMaju"></span></span>
+    <span id="nNilai"></span>
+  </div>
+
+  <!-- BK1: ketuk kata. Nol pengetikan Arab. -->
+  <div class="kartu" id="kPilihKata">
+    <p class="redup" style="margin:0 0 6px">Ketuk satu kata untuk dijadikan soal.</p>
+    <div class="arab" id="ibarat"></div>
+    <button id="bGantiIbarat" style="width:100%;margin-top:8px">Ganti ibarat</button>
+  </div>
+
+  <!-- Tangga pertanyaan -->
+  <div id="kTangga">
+    <div class="kartu">
+      <div class="arab" id="soalTeks"></div>
+      <div class="redup" id="soalInfo"></div>
+    </div>
+    <div id="titik"></div>
+    <p id="tanya"></p>
+    <div class="verdict">
+      <button class="vb" data-v="benar">Benar<small>lancar sendiri</small></button>
+      <button class="vd" data-v="dibantu">Dibantu<small>ditunjuki dulu</small></button>
+      <button class="vs" data-v="salah">Salah<small>belum bisa</small></button>
+    </div>
+    <div class="baris" style="margin-top:10px">
+      <button id="bLewati" style="flex:1">Lewati — tidak berlaku</button>
+      <button id="bUndo" style="flex:1">Ulangi langkah</button>
+    </div>
+  </div>
+
+  <button id="bSelesai" style="width:100%;margin-top:18px">Sudahi sesi santri ini</button>
+</section>
+
+<!-- ═══════════ 5. HASIL ═══════════ -->
+<section id="s-hasil">
+  <div id="bar"><button id="bKembali" style="min-height:0;padding:6px 12px;font-size:.8rem">← Kembali</button>
+    <button id="bCetak" style="min-height:0;padding:6px 12px;font-size:.8rem">Cetak leger</button></div>
+  <h1>Hasil</h1>
+  <div id="isiHasil"><p class="redup">Memuat…</p></div>
+</section>
+
+<div id="cetak" style="display:none"></div>
+</main>
+
+<div id="status"></div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const URL_SB = 'https://unozvswlxqbhqzmlsirl.supabase.co';
+const KUNCI   = 'sb_publishable_pflSel-WXV5KN7gJsdaZsw_C93xwrof';
+const sb = createClient(URL_SB, KUNCI);
+
+const $  = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const layar = (id) => $$('section').forEach(s => s.classList.toggle('aktif', s.id === id));
+const acak  = (a) => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(v => v[1]);
+const hariIni = () => new Date().toLocaleDateString('sv');   // YYYY-MM-DD waktu lokal
+
+// ══════════════════════════════════════════════════════════════
+// Antrean offline.
+// Sinyal di kelas pesantren tidak bisa diandalkan, jadi hasil ketukan
+// TIDAK PERNAH menunggu jaringan: masuk localStorage dulu, dikirim belakangan.
+// RPC simpan_penilaian aman diulang, jadi pengiriman ulang tidak menggandakan.
+// ══════════════════════════════════════════════════════════════
+const K_ANTRE = 'sorogan.antrean', K_REF = 'sorogan.ref';
+let antrean = JSON.parse(localStorage.getItem(K_ANTRE) || '[]');
+let mengirim = false;
+
+const simpanAntrean = () => localStorage.setItem(K_ANTRE, JSON.stringify(antrean));
+
+function antre(payload) {
+  antrean.push(payload);
+  simpanAntrean();
+  kirim();
+}
+
+async function kirim() {
+  if (mengirim || !antrean.length) return;
+  mengirim = true;
+  while (antrean.length) {
+    const { error } = await sb.rpc('simpan_penilaian', antrean[0]);
+    if (error) break;                 // tetap di antrean, dicoba lagi nanti
+    antrean.shift();
+    simpanAntrean();
+  }
+  mengirim = false;
+  lapor();
+}
+
+function lapor() {
+  const n = antrean.length;
+  $('#status').className = n ? 'tampil' : '';
+  $('#status').textContent = n
+    ? `${n} penilaian belum terkirim — tersimpan aman di HP ini, jangan hapus data browser.`
+    : '';
+}
+addEventListener('online', kirim);
+setInterval(kirim, 15000);
+
+// ══════════════════════════════════════════════════════════════
+// Data acuan — dicache supaya sesi tetap jalan tanpa sinyal
+// ══════════════════════════════════════════════════════════════
+let ref = JSON.parse(localStorage.getItem(K_REF) || 'null');
+
+async function muatRef() {
+  const [santri, soal, langkah, ibarat] = await Promise.all([
+    sb.from('santri').select('id,nama,tingkat').order('nama'),
+    sb.from('soal').select('id,teks,tipe,tingkat,nomor_bank').eq('tingkat', 'BK2'),
+    sb.from('langkah').select('*').order('tipe').order('urutan'),
+    sb.from('ibarat').select('id,teks,urutan').order('urutan'),
+  ]);
+  const galat = [santri, soal, langkah, ibarat].find(r => r.error);
+  if (galat) throw galat.error;
+  ref = { santri: santri.data, soal: soal.data, langkah: langkah.data, ibarat: ibarat.data };
+  localStorage.setItem(K_REF, JSON.stringify(ref));
+}
+
+const tangga = (tipe) => ref.langkah.filter(l => l.tipe === tipe).sort((a, b) => a.urutan - b.urutan);
+
+// ══════════════════════════════════════════════════════════════
+// Alur masuk
+// ══════════════════════════════════════════════════════════════
+$('#bMasuk').onclick = () => auth('signInWithPassword');
+$('#bDaftar').onclick = () => auth('signUp');
+
+async function auth(cara) {
+  const email = $('#em').value.trim(), password = $('#pw').value;
+  if (!email || !password) return ($('#gMasuk').textContent = 'Email dan kata sandi harus diisi.');
+  $('#gMasuk').textContent = 'Menghubungi server…';
+  const { data, error } = await sb.auth[cara]({ email, password });
+  if (error) return ($('#gMasuk').textContent = error.message);
+  if (!data.session) return ($('#gMasuk').textContent =
+    'Akun dibuat. Cek email untuk konfirmasi, lalu Masuk.');
+  mulai();
+}
+
+const keluar = async () => { await sb.auth.signOut(); location.reload(); };
+$('#bKeluar1').onclick = keluar;
+$('#bKeluar2').onclick = keluar;
+
+$('#bKlaim').onclick = async () => {
+  const kode = $('#kd').value.trim().toUpperCase();
+  if (kode.length < 4) return ($('#gKlaim').textContent = 'Kode belum lengkap.');
+  $('#gKlaim').textContent = 'Memeriksa…';
+  const { error } = await sb.rpc('klaim_ustadz', { p_kode: kode });
+  if (error) return ($('#gKlaim').textContent = error.message);
+  mulai();
+};
+
+let aku = null;
+
+async function mulai() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return layar('s-masuk');
+
+  const { data } = await sb.from('ustadz').select('id,nama').eq('auth_id', session.user.id).maybeSingle();
+  if (!data) return layar('s-klaim');
+  aku = data;
+
+  // Kalau data acuan gagal dimuat tapi cache lama masih ada, sesi tetap jalan.
+  try { await muatRef(); }
+  catch (e) {
+    if (!ref) {   // benar-benar belum pernah memuat: butuh sinyal sekali saja
+      $('#gMasuk').textContent = 'Butuh sinyal untuk pemakaian pertama di HP ini. ' + e.message;
+      return layar('s-masuk');
+    }
+  }
+
+  $('#halo').textContent = aku.nama;
+  gambarSantri();
+  layar('s-mulai');
+  lapor();
+  kirim();
+}
+
+// ══════════════════════════════════════════════════════════════
+// Pilihan sesi
+// ══════════════════════════════════════════════════════════════
+let pilihan = { tingkat: 'BK1', mode: 'ujian', santri: null };
+
+$$('[data-tingkat],[data-mode]').forEach(b => b.onclick = () => {
+  const kunci = b.dataset.tingkat ? 'tingkat' : 'mode';
+  pilihan[kunci] = b.dataset.tingkat || b.dataset.mode;
+  $$(`[data-${kunci}]`).forEach(x => x.setAttribute('aria-pressed', x === b));
+  ringkas();
+});
+
+function gambarSantri() {
+  $('#daftarSantri').innerHTML = '';
+  ref.santri.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'pilih'; b.textContent = s.nama;
+    b.onclick = () => {
+      pilihan.santri = s;
+      $$('#daftarSantri button').forEach(x => x.setAttribute('aria-pressed', x === b));
+      ringkas();
+    };
+    $('#daftarSantri').append(b);
+  });
+  $$('[data-tingkat]')[0].click();
+  $$('[data-mode]')[0].click();
+}
+
+const JML_BK1 = 10;      // 10 kolom leger kertas
+const PER_TIPE_BK2 = 2;  // 2 soal × 4 tipe = 8
+
+function ringkas() {
+  const n = pilihan.tingkat === 'BK1' ? JML_BK1 : PER_TIPE_BK2 * 4;
+  $('#ringkasMulai').textContent = pilihan.santri
+    ? `${pilihan.santri.nama} · ${pilihan.tingkat} · ${n} soal`
+    : 'Pilih satu santri dulu.';
+}
+
+// ══════════════════════════════════════════════════════════════
+// Sesi penilaian
+// ══════════════════════════════════════════════════════════════
+let sesi = null;
+
+$('#bMulai').onclick = () => {
+  if (!pilihan.santri) return alert('Pilih santri dulu.');
+  sesi = {
+    ...pilihan,
+    ke: 0,
+    // BK2 dibagi MERATA per tipe lalu diacak. Penguji tidak memilih apa pun:
+    // tanpa ini, santri yang kebagian 5 nawasikh dinilai jauh lebih keras
+    // daripada yang kebagian 5 ismiyah, dan itu tidak terlihat di hasil.
+    daftar: pilihan.tingkat === 'BK2' ? bagikanBK2() : null,
+    ditanya: new Set(),   // langkah `sekali_per_sesi` yang sudah keluar
+    nilai: [],
+    soal: null,
+  };
+  ronde();
+  layar('s-nilai');
+};
+
+function bagikanBK2() {
+  const tipe = ['ismiyah', 'filiyah', 'nawasikh', 'tabi'];
+  return acak(tipe.flatMap(t => acak(ref.soal.filter(s => s.tipe === t)).slice(0, PER_TIPE_BK2)));
+}
+
+const target = () => sesi.tingkat === 'BK1' ? JML_BK1 : sesi.daftar.length;
+
+function ronde() {
+  const selesai = sesi.ke >= target();
+  $('#nSantri').textContent = sesi.santri.nama;
+  $('#nMaju').textContent = `soal ${Math.min(sesi.ke + 1, target())} dari ${target()}`;
+  const rata = sesi.nilai.length
+    ? Math.round(sesi.nilai.reduce((a, b) => a + b, 0) / sesi.nilai.length) : null;
+  $('#nNilai').textContent = rata === null ? '' : `nilai berjalan ${rata}`;
+
+  if (selesai) return rangkumSantri();
+
+  if (sesi.tingkat === 'BK1') {
+    sesi.soal = null;
+    gambarIbarat();
+    $('#kPilihKata').style.display = '';
+    $('#kTangga').style.display = 'none';
+  } else {
+    const s = sesi.daftar[sesi.ke];
+    sesi.soal = { soal_id: s.id, teks: s.teks, tipe: s.tipe, nomor: s.nomor_bank };
+    $('#kPilihKata').style.display = 'none';
+    bukaTangga();
+  }
+}
+
+let ibaratKini = null;
+
+function gambarIbarat() {
+  ibaratKini = ref.ibarat[Math.floor(Math.random() * ref.ibarat.length)];
+  $('#ibarat').innerHTML = '';
+  ibaratKini.teks.split(/\s+/).filter(Boolean).forEach(kata => {
+    const b = document.createElement('button');
+    b.textContent = kata;
+    b.onclick = () => {
+      sesi.soal = { ibarat_id: ibaratKini.id, lafad: kata, tipe: 'lafad',
+                    teks: ibaratKini.teks, sorot: kata };
+      $('#kPilihKata').style.display = 'none';
+      bukaTangga();
+    };
+    $('#ibarat').append(b, document.createTextNode(' '));
+  });
+}
+$('#bGantiIbarat').onclick = gambarIbarat;
+
+let langkahKini = [], posisi = 0, buffer = [], jamLangkah = 0;
+
+function bukaTangga() {
+  // Pertanyaan definisi ("apa pengertian mubtada'?") cukup sekali per sesi —
+  // persis seperti catatan "Opsional/cukup sekali" di lembar asatidz.
+  langkahKini = tangga(sesi.soal.tipe).filter(l => !(l.sekali_per_sesi && sesi.ditanya.has(l.id)));
+  posisi = 0; buffer = [];
+  $('#kTangga').style.display = '';
+
+  if (sesi.soal.sorot) {
+    $('#soalTeks').innerHTML = sesi.soal.teks.split(/\s+/).filter(Boolean)
+      .map(k => k === sesi.soal.sorot ? `<mark>${k}</mark>` : k).join(' ');
+  } else {
+    $('#soalTeks').textContent = sesi.soal.teks;
+  }
+  $('#soalInfo').textContent = sesi.soal.nomor
+    ? `soal no. ${sesi.soal.nomor} · ${sesi.soal.tipe}`
+    : `lafad · ${langkahKini.length} pertanyaan`;
+  render();
+}
+
+function render() {
+  $('#titik').innerHTML = langkahKini.map((l, i) => {
+    const j = buffer.find(x => x.langkah_id === l.id);
+    const c = !j ? (i < posisi ? 'l' : '') : { benar: 'b', dibantu: 'd', salah: 's' }[j.verdict];
+    return `<i class="${c}"></i>`;
+  }).join('');
+  const l = langkahKini[posisi];
+  $('#tanya').textContent = l ? `${l.urutan}. ${l.pertanyaan}` : '';
+  $('#bUndo').disabled = posisi === 0;
+  jamLangkah = performance.now();
+}
+
+$$('.verdict button').forEach(b => b.onclick = () => jawab(b.dataset.v));
+$('#bLewati').onclick = () => jawab(null);
+$('#bUndo').onclick = () => {
+  if (posisi === 0) return;
+  posisi--;
+  buffer = buffer.filter(x => x.langkah_id !== langkahKini[posisi].id);
+  render();
+};
+
+function jawab(verdict) {
+  const l = langkahKini[posisi];
+  if (!l) return;
+  // Langkah yang dilewati sengaja TIDAK menghasilkan baris. Bukan nilai nol —
+  // itu sebabnya rata-rata tetap benar tanpa filter khusus di mana pun.
+  if (verdict) {
+    buffer = buffer.filter(x => x.langkah_id !== l.id);
+    buffer.push({ langkah_id: l.id, verdict, detik: +((performance.now() - jamLangkah) / 1000).toFixed(1) });
+    if (l.sekali_per_sesi) sesi.ditanya.add(l.id);
+  }
+  posisi++;
+  posisi < langkahKini.length ? render() : tutupSoal();
+}
+
+const BOBOT = { benar: 1, dibantu: .5, salah: 0 };
+
+function tutupSoal() {
+  if (buffer.length) {
+    // Nilai soal = rata-rata langkah YANG TERCATAT pada soal ini.
+    // Sama persis dengan view v_nilai_soal di database.
+    sesi.nilai.push(buffer.reduce((a, j) => a + BOBOT[j.verdict], 0) / buffer.length * 100);
+    antre({
+      p_tanggal: hariIni(), p_mode: sesi.mode,
+      p_santri_id: sesi.santri.id, p_urutan: sesi.ke + 1,
+      p_jawaban: buffer,
+      p_soal_id: sesi.soal.soal_id ?? null,
+      p_ibarat_id: sesi.soal.ibarat_id ?? null,
+      p_lafad: sesi.soal.lafad ?? null,
+    });
+  }
+  sesi.ke++;
+  ronde();
+}
+
+$('#bSelesai').onclick = () => { if (confirm('Sudahi sesi santri ini?')) rangkumSantri(); };
+
+function rangkumSantri() {
+  const n = sesi.nilai.length;
+  const rata = n ? Math.round(sesi.nilai.reduce((a, b) => a + b, 0) / n) : 0;
+  alert(`${sesi.santri.nama}\n${n} soal dinilai — nilai ${rata}\n\n` +
+        (antrean.length ? `${antrean.length} masih menunggu terkirim.` : 'Semua tersimpan.'));
+  sesi = null;
+  pilihan.santri = null;              // cegah tak sengaja menguji santri yang sama dua kali
+  $$('#daftarSantri button').forEach(x => x.setAttribute('aria-pressed', false));
+  ringkas();
+  layar('s-mulai');
+}
+
+// ══════════════════════════════════════════════════════════════
+// Hasil, diagnostik, leger cetak
+// ══════════════════════════════════════════════════════════════
+$('#bHasil').onclick = async () => {
+  layar('s-hasil');
+  $('#isiHasil').innerHTML = '<p class="redup">Memuat…</p>';
+  if (!navigator.onLine) return ($('#isiHasil').innerHTML =
+    '<p class="redup">Perlu sinyal. Data penilaian tetap aman tersimpan.</p>');
+
+  const [nilai, lemah, kalib, sulit] = await Promise.all([
+    sb.from('v_nilai_santri').select('*'),
+    sb.from('v_kelemahan_langkah').select('*'),
+    sb.from('v_kalibrasi_penguji').select('*'),
+    sb.from('v_soal_sulit').select('*').order('nilai').limit(5),
+  ]);
+  if (nilai.error) return ($('#isiHasil').innerHTML = `<p class="galat">${nilai.error.message}</p>`);
+
+  const nama = Object.fromEntries(ref.santri.map(s => [s.id, s.nama]));
+  const per = {};
+  (nilai.data || []).forEach(r => {
+    per[r.santri_id] = per[r.santri_id] || { n: 0, t: 0 };
+    per[r.santri_id].n += r.jml_soal; per[r.santri_id].t += +r.nilai;
+  });
+
+  const tabel = (judul, isi) => `<h2>${judul}</h2><div class="gulir">${isi}</div>`;
+  let html = '';
+
+  html += tabel('Nilai santri', `<table><tr><th class="kiri">Santri</th><th>Soal</th><th>Nilai</th></tr>` +
+    Object.entries(per).sort((a, b) => b[1].t - a[1].t).map(([id, v]) =>
+      `<tr><td class="kiri">${nama[id] ?? id}</td><td>${v.n}</td><td><b>${Math.round(v.t)}</b></td></tr>`
+    ).join('') + '</table>');
+
+  // Inilah yang kertas tidak bisa: bukan "nilainya berapa", tapi
+  // "macetnya di anak-tangga yang mana".
+  const agg = {};
+  (lemah.data || []).forEach(r => {
+    const k = `${r.tipe}|${r.urutan}|${r.pertanyaan}`;
+    agg[k] = agg[k] || { n: 0, t: 0 };
+    agg[k].n += r.n; agg[k].t += +r.nilai * r.n;
+  });
+  html += tabel('Anak-tangga terlemah se-kelas', `<table><tr><th class="kiri">Pertanyaan</th><th>N</th><th>Nilai</th></tr>` +
+    Object.entries(agg).map(([k, v]) => ({ k, n: v.n, r: v.t / v.n }))
+      .sort((a, b) => a.r - b.r).slice(0, 8).map(x => {
+        const [tipe, , tanya] = x.k.split('|');
+        return `<tr><td class="kiri">${tanya}<br><span class="redup">${tipe}</span></td>` +
+               `<td>${x.n}</td><td><div class="bar"><i style="width:${x.r}%"></i></div>${Math.round(x.r)}</td></tr>`;
+      }).join('') + '</table>');
+
+  if ((kalib.data || []).length > 1) {
+    html += tabel('Kalibrasi penguji', `<p class="redup">Selisih besar dari rata-rata kelas berarti
+      standar penguji perlu disamakan — bukan santrinya yang berbeda.</p>
+      <table><tr><th class="kiri">Penguji</th><th>Dinilai</th><th>Rata</th><th>Selisih</th></tr>` +
+      kalib.data.map(r => {
+        const d = (+r.rata_penguji - +r.rata_semua).toFixed(1);
+        return `<tr><td class="kiri">${r.nama}</td><td>${r.jml_dinilai}</td><td>${r.rata_penguji}</td>` +
+               `<td style="color:${Math.abs(d) > 10 ? 'var(--salah)' : 'inherit'}">${d > 0 ? '+' : ''}${d}</td></tr>`;
+      }).join('') + '</table>');
+  }
+
+  if ((sulit.data || []).length) {
+    html += tabel('Soal tersulit', `<p class="redup">Kalau semua tersandung di sini, yang perlu
+      ditinjau ibarat atau rubriknya — bukan santrinya.</p>
+      <table><tr><th class="kiri">Soal</th><th>Nilai</th></tr>` +
+      sulit.data.map(r => `<tr><td class="kiri arab" style="font-size:1.2rem">${r.teks}</td>` +
+        `<td>${Math.round(r.nilai)}</td></tr>`).join('') + '</table>');
+  }
+
+  $('#isiHasil').innerHTML = html || '<p class="redup">Belum ada data.</p>';
+  susunLeger();
+};
+
+$('#bKembali').onclick = () => layar('s-mulai');
+$('#bCetak').onclick = () => print();
+
+// Cetakan sengaja dibuat semirip mungkin dengan leger kertas: yang membaca
+// (kyai / kepala madrasah) menerima lembar yang sama seperti biasa, cuma
+// sudah terisi. Nol pelatihan di sisi pembaca — ini jembatan adopsinya.
+async function susunLeger() {
+  // Hanya sesi hari ini milik penguji ini — persis satu lembar leger.
+  const { data: pen } = await sb.from('penilaian')
+    .select('id,santri_id,urutan,sesi!inner(tanggal,ustadz_id)')
+    .eq('sesi.tanggal', hariIni()).eq('sesi.ustadz_id', aku.id);
+  const { data: nil } = await sb.from('v_nilai_soal').select('penilaian_id,nilai');
+  if (!pen || !nil) return;
+  const nilaiOf = Object.fromEntries(nil.map(r => [r.penilaian_id, r.nilai]));
+  const sel = {};
+  pen.forEach(p => {
+    if (nilaiOf[p.id] == null) return;
+    (sel[p.santri_id] = sel[p.santri_id] || {})[p.urutan] = nilaiOf[p.id];
+  });
+  const kolom = Math.max(JML_BK1, ...Object.values(sel).flatMap(o => Object.keys(o).map(Number)), 1);
+  $('#cetak').innerHTML =
+    `<h1 style="text-align:center">Leger Penilaian Tes Lisan Baca Kitab</h1>
+     <p style="text-align:center">Penguji: ${aku.nama} &nbsp;·&nbsp; ${new Date().toLocaleDateString('id-ID',
+       { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+     <table><tr><th>No.</th><th class="kiri">Nama</th>` +
+       Array.from({ length: kolom }, (_, i) => `<th>${i + 1}</th>`).join('') + `<th>Nilai</th></tr>` +
+     ref.santri.map((s, i) => {
+       const r = sel[s.id]; if (!r) return '';
+       const v = Object.values(r).map(Number);
+       return `<tr><td>${i + 1}</td><td class="kiri">${s.nama}</td>` +
+         Array.from({ length: kolom }, (_, k) => `<td>${r[k + 1] != null ? Math.round(r[k + 1]) : ''}</td>`).join('') +
+         `<td><b>${v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : ''}</b></td></tr>`;
+     }).join('') + '</table>';
+}
+
+// ══════════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+mulai();
+</script>
+</body>
+</html>

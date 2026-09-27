@@ -1,0 +1,23 @@
+-- Absensi Ma'had Aly 2026 -- nama + semester mahasantri
+--
+-- Sumber: ABSENSI_MA'HAD_ALY New 2026.xlsx, satu sheet per angkatan, dan
+-- tiap sheet punya semester sendiri di header. 143 baris unik: tidak ada
+-- NIM kembar dan tidak ada nama kembar.
+--
+-- 19 baris seed lama dipetakan ke nama lengkap. Bukti pemetaan, bukan
+-- tebakan: dari 14 padanan yang tidak ambigu, satu-dua-semuanya ber
+-- semester 1. Empat yang ambigu (Reyhan, Agil, Hilmi, Ubaid) ikut ke
+-- angkatan yang sama karena kandidat alternatifnya ber semester 3 atau 8 --
+-- tidak cocok dengan 19 anggota seed lainnya yang semuanya semester 1.
+--
+-- id 5 ("Ach. Muzaki") tidak ada padanannya di file absensi, jadi
+-- dibiarkan: semester NULL, bukan ditebak.
+--
+-- Flag impor diperlukan karena trigger `tegak_ubah_santri` (024/038b) menolak
+-- perubahan `nama`. Itu memang tujuannya untuk halaman penilaian; impor ini
+-- perubahan nama yang sah, jadi lewat flag -- bukan lewat jalur bypass.
+--
+-- `update` di bawah TIDAK idempoten: jalankan sekali saja. Yang aman
+-- diulang adalah bagian insert di 039 (pakai `where not exists`).
+
+select set_config('sorogan.impor', '1', true);

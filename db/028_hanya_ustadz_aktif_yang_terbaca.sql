@@ -1,0 +1,9 @@
+-- Cermin dari 027, untuk `ustadz`: mentor yang sudah tidak mengajar tidak
+-- boleh muncul sebagai pilihan.
+--
+-- Tapi TIDAK diterapkan di sini, dan itu keputusan sadar: mentor nonaktif
+-- masih valora sebagai guru -- dia hanya tidak memegang kelompok. Kalau
+-- hilang total, raport yang pernah ia isi ikut hilang dari pandangan.
+--
+-- Yang perlu disaring hanya daftar anak yang boleh diuji, dan itu sudah
+-- dijaga di ambilAcuan (app/utils/repo.ts:98) plus policy baca di 027.

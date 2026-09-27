@@ -1,0 +1,12 @@
+# User Preferences
+- Communicates in Indonesian (Bahasa Indonesia). Confidence: 0.9
+- Prefers short, direct, action-oriented responses and commands — no pleasantries needed. Confidence: 0.8
+- Expects the assistant to be aware of connected tools, integrations, and MCP servers in the current environment — gets frustrated when it suggests setting up something already configured. Confidence: 0.7
+- Prefers the assistant to handle infrastructure/DB operations directly through available tools (e.g., MCP, CLI) rather than delegating back with manual instructions. Gets frustrated when the assistant suggests manual dashboard steps instead of trying CLI/programmatic approaches first. Confidence: 0.95
+- For significant features or architectural changes, prefers to discuss and plan first before implementation ("Planning dulu untuk ini"). Confidence: 0.85
+- When debugging errors, prefers thorough, systematic expert-level investigation — explicitly asked not to rush ("Jangan terburu buru"). Confidence: 0.85
+- Values YAGNI-first, minimal-code philosophy — actively installed "ponytail" rules (no unnecessary abstractions, no boilerplate, shortest working diff, reuse over rewrite, deletion over addition). Confidence: 0.85
+- Expects admin CRUD to include full account creation (email + password via auth system), not just database record management — "adding a user" means creating complete login credentials. Confidence: 0.8
+- Prefers mobile-first, app-like UI design — bottom navigation, card-based layouts, touch-friendly targets, modern clean aesthetics. Provides visual reference screenshots when describing desired UI direction, but expects adaptation rather than copying. Confidence: 0.85
+- Prefers muted/solid color palettes over neon/vibrant colors, especially in dark mode — explicitly rejects "warna neon", "shadow norak" (tacky shadows), and "AI slop" (generic, obviously AI-generated patterns). Prefers subtle borders over decorative box-shadows. Values harmonious, understated, human-crafted-looking design. Dark mode should look intentional, not template-like. Confidence: 0.9
+- Prefers incremental/granular task execution — break large changes into small tasks and complete them one by one, not all at once ("Selesaikan berkala, berfikirlah runtut"). Explicitly warns against over-ambitious plans ("Jangan halu"). Confidence: 0.85

@@ -1,0 +1,11 @@
+-- Daftar operasional (mulai sesi) hanya menampilkan yang aktif.
+--
+-- Di sisi server, bukan hanya di UI. Alasannya: acuan di-cache di
+-- localStorage (useAcuan), jadi filter UI bisa dilewati begitu cache terisi
+-- -- lalu cache itu justru yang dipakai saat sinyal hilang, yaitu saat
+-- penilaian tidak boleh berhenti. Filter di query menutup jalurnya di satu
+-- tempat yang tidak bisa dilewati.
+--
+-- Yang TIDAK berubah: halaman hasil dan kenaikan. Keduanya membaca lewat
+-- view, dan view di sini TIDAK security_invoker, jadi filter ini tidak
+-- menyentuhnya. Riwayat nonlocal tetap tampil utuh (D1).

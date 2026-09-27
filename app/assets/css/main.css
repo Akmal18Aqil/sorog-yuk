@@ -1,0 +1,490 @@
+/* ============================================================
+   Sorogan Digital — Design System
+   Mobile-first, lightweight, offline-ready
+
+   Nilai warna di bawah sudah dihitung dengan WCAG 2.x. Angka
+   kontrasnya tercatat di DESAIN.md bagian 2. Jangan mengganti
+   warna tanpa menghitung ulang.
+   ============================================================ */
+
+/* --- Token (Light) --- */
+:root {
+  --bg: #f7f5ef;              /* kertas krem */
+  --surface: #fffdf8;         /* kartu, sheet */
+  --text: #1b2420;            /* 15.65:1 di surface */
+  --muted: #5c6b64;           /* 5.52:1 di surface */
+  --border: #dcd8cd;          /* garis rambut, 1.31:1. Dekoratif saja. */
+  --border-kontrol: #8f8874;  /* 3.48:1. Batas input yang wajib terlihat. */
+
+  --primary: #25543f;         /* putih di atasnya 8.68:1 */
+  --primary-hover: #1e4432;   /* putih di atasnya 10.89:1 */
+  --primary-light: #e8efe9;   /* hijau di atasnya 7.42:1 */
+  --teks-aksen: #ffffff;      /* teks di atas --primary. Mode gelap: gelap. */
+
+  --success: #1f6b45;         /* di --success-light 5.80:1 */
+  --success-light: #eef4f0;
+  --warning: #8a5a12;         /* di --warning-light 5.27:1 */
+  --warning-light: #faf1de;
+  --error: #a33227;           /* di --error-light 6.17:1 */
+  --error-light: #faf0ee;
+
+  /* Typography */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, .07), 0 2px 4px -2px rgba(0, 0, 0, .05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, .08), 0 4px 6px -4px rgba(0, 0, 0, .05);
+}
+
+/* --- Token (Dark) ---
+   Warna di mode gelap lebih terang dari biasanya, jadi teks di atasnya harus
+   gelap. Kuncinya: --teks-aksen berubah dari putih ke gelap. Tanpa itu tombol
+   utama gelap hanya 3.03:1 dan tidak terbaca. */
+.dark {
+  --bg: #16191a;
+  --surface: #1e2223;
+  --text: #e8ece9;            /* 9.89:1 di surface */
+  --muted: #9aa39f;           /* 6.20:1 di surface */
+  --border: #2c3133;
+  --border-kontrol: #6f7a7c;  /* 3.63:1. Bukan #5c6668: hanya 2.72:1, gagal. */
+
+  --primary: #7d9b8a;         /* teks gelap di atasnya 5.83:1 */
+  --primary-hover: #a3c0ae;
+  --primary-light: #1b2721;
+  --teks-aksen: #16191a;
+
+  --success: #8fbf9f;         /* di --success-light 7.45:1 */
+  --success-light: #1b2721;
+  --warning: #d9a441;         /* di --warning-light 6.93:1 */
+  --warning-light: #2a2312;
+  --error: #d98b7f;           /* di --error-light 6.19:1 */
+  --error-light: #2b1c1a;
+}
+
+/* Nama lama yang masih dipakai beberapa halaman. Ditaruh satu kali di luar
+   .dark supaya tidak terduplikasi: variabel CSS dibaca saat dipakai, bukan
+   saat dideklarasikan. */
+:root {
+  --kartu: var(--surface);
+  --garis: var(--border);
+  --tulisan: var(--text);
+  --redup: var(--muted);
+  --benar: var(--success);
+  --dibantu: var(--warning);
+  --salah: var(--error);
+  --aksen: var(--primary);
+}
+
+/* Dark mode overrides for components */
+.dark .kartu { box-shadow: none; border: 1px solid var(--border); }
+.dark .avatar { box-shadow: none; }
+.dark .bottom-nav { box-shadow: none; }
+.dark .modal { box-shadow: none; border: 1px solid var(--border); }
+
+/* --- Reset & Base --- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  /* Huruf sistem, tanpa Inter: Inter tidak pernah dimuat di proyek ini
+     (tidak ada @font-face dan tidak ada <link>), jadi menulis namanya cuma
+     kebohongan yang diam-diam diabaikan browser. */
+  font: var(--text-base)/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Layout: dua shell ---
+   Shell A (HP, < 900px): satu kolom, navigasi bawah.
+   Shell B (desktop, >= 900px): sidebar + konten.
+   Ambang 900px bukan ukuran perangkat: di bawah itu navigasi bawah masih
+   dalam jangkauan jari, di atas tidak. */
+.app-shell { display: flex; min-height: 100dvh; }
+
+.app-main {
+  flex: 1;
+  min-width: 0;              /* tanpa ini, tabel lebar men-expand sidebar */
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;   /* halaman setinggi layar (login) ikut fill */
+  padding: var(--space-4);
+  /* Ruang untuk navigasi bawah (64px) + 20px, supaya baris terakhir daftar
+     dan tombol Simpan tidak tertutup. */
+  padding-bottom: calc(64px + 20px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 900px) {
+  .app-main {
+    padding: var(--space-6);
+    padding-bottom: var(--space-8);
+  }
+}
+
+/* .container dan .wadah masih dipakai beberapa halaman lama. Keduanya
+   dipertahankan agar tidak ikut rusak, tapi tidak lagi mengunci lebar
+   640px: batas lebar diambil dari .app-main. */
+.container, .wadah {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+}
+
+/* --- Typography --- */
+h1 { font-size: var(--text-2xl); font-weight: 700; margin: 0 0 var(--space-2); line-height: 1.2; }
+h2 { font-size: var(--text-lg); font-weight: 600; margin: var(--space-5) 0 var(--space-2); color: var(--muted); }
+.subtitle { font-size: var(--text-sm); color: var(--muted); margin: 0 0 var(--space-4); }
+.redup { color: var(--muted); font-size: var(--text-sm); }
+.galat { color: var(--error); font-size: var(--text-sm); margin-top: var(--space-2); min-height: 1.2em; }
+
+/* Arabic text */
+.arab {
+  font-family: 'Traditional Arabic', 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', serif;
+  direction: rtl; text-align: right; line-height: 2.1;
+}
+
+/* --- Cards --- */
+.kartu {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-3);
+}
+.kartu-flat {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-3);
+}
+
+/* --- Flex/Grid Utilities --- */
+.baris { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.baris-tengah { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-2); }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+/* Empat kartu di 360px hanya menyisakan 84px per kartu, dan label
+   "Kelompok" terpotong. Dua kolom lebih dulu, empat baru setelah 700px
+   di mana tiap kartu 160px dan labelnya muat satu baris. */
+.grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-2); }
+@media (min-width: 700px) {
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+}
+/* Tabel lebar digulir di dalam kotaknya, bukan menggeser halaman. Kolom
+   nama dikunci di kiri: tanpa itu, angka kehilangan identitasnya saat
+   digulir dan leger jadi tidak berguna.
+   Tidak ada min-width paksa di sini: tabel 2 kolom seperti "Soal Tersulit"
+   akan ikut tergulir tanpa gunanya. Lebar tabel ditentukan oleh isinya. */
+.gulir { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.gulir > table th.kiri, .gulir > table td.kiri {
+  position: sticky; left: 0;
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--border);
+}
+
+/* --- Buttons --- */
+button {
+  font: inherit; color: inherit; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 13px var(--space-4); cursor: pointer;
+  min-height: 48px; transition: all 0.15s ease;
+}
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.5; pointer-events: none; }
+button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* --teks-aksen, bukan #fff: di mode gelap --primary jadi terang, dan teks
+   putih di atasnya hanya 3.03:1. */
+.utama {
+  background: var(--primary); color: var(--teks-aksen); border-color: var(--primary);
+  font-weight: 600; width: 100%;
+}
+.utama:hover { background: var(--primary-hover); }
+.penuh { width: 100%; }
+.kecil {
+  min-height: 0; padding: 6px 12px; font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+.back-btn {
+  min-height: 0; padding: 8px 14px; font-size: var(--text-sm);
+  border-radius: var(--radius-sm); text-decoration: none;
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  color: var(--text); background: var(--bg); border: 1px solid var(--border);
+}
+.back-btn:hover { background: var(--primary-light); }
+.ikon {
+  min-height: 0; padding: 8px; border-radius: var(--radius-full);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pilih[aria-pressed='true'] {
+  background: var(--primary); color: var(--teks-aksen); border-color: var(--primary);
+}
+
+/* --- Forms --- */
+input, select, textarea {
+  font: inherit; color: inherit; background: var(--bg);
+  border: 1px solid var(--border-kontrol);
+  border-radius: var(--radius-md);
+  padding: 13px; width: 100%; min-height: 48px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+/* Fokus tidak boleh hilang. `outline: none` + box-shadow pucat lama membuat
+   cincin fokus nyaris tidak terlihat di layar terang; sekarang memakai
+   outline yang kontrasnya dihitung (8.54:1 di terang, 5.30:1 di gelap). */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+/* Placeholder tidak pakai opacity: 0.7 karena menurunkan kontras teks di
+   bawah ambang. Warna --muted sudah cukup redup sendiri. */
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+label { display: block; font-size: var(--text-sm); color: var(--muted); margin: var(--space-3) 0 var(--space-1); font-weight: 500; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M2 4l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+textarea { resize: vertical; min-height: 80px; }
+
+/* --- Badges --- */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: var(--radius-full);
+  font-size: var(--text-xs); font-weight: 500;
+}
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-warning { background: var(--warning-light); color: var(--warning); }
+.badge-error { background: var(--error-light); color: var(--error); }
+.badge-primary { background: var(--primary-light); color: var(--primary); }
+
+/* --- Avatar --- */
+.avatar {
+  width: 40px; height: 40px; border-radius: var(--radius-full);
+  background: var(--primary-light); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: var(--text-sm); flex-shrink: 0;
+}
+.avatar-sm { width: 32px; height: 32px; font-size: var(--text-xs); }
+.avatar-lg { width: 56px; height: 56px; font-size: var(--text-lg); }
+
+/* --- Stat Card --- */
+.stat-card {
+  background: var(--surface); border-radius: var(--radius-lg);
+  padding: var(--space-4); box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+.stat-card .icon { font-size: 24px; margin-bottom: var(--space-2); }
+.stat-card .value { font-size: var(--text-2xl); font-weight: 700; margin: 0; }
+.stat-card .label { font-size: var(--text-xs); color: var(--muted); margin: var(--space-1) 0 0; }
+
+/* --- List Items --- */
+.list-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  transition: background 0.15s ease;
+  text-decoration: none; color: inherit;
+}
+.list-item:hover { background: var(--bg); }
+.list-item-content { flex: 1; min-width: 0; }
+.list-item-title { font-weight: 600; font-size: var(--text-base); color: var(--text); text-decoration: none; }
+.list-item-sub { font-size: var(--text-sm); color: var(--muted); margin: 2px 0 0; }
+.list-item-actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
+
+/* --- Section --- */
+.section { margin-bottom: var(--space-6); }
+.section-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--space-3);
+}
+.section-title { font-size: var(--text-lg); font-weight: 600; }
+
+/* --- Modal/Dialog --- */
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0, 0, 0, .5); backdrop-filter: blur(4px);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+@media (min-width: 640px) {
+  .overlay { align-items: center; padding: var(--space-4); }
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  width: 100%; max-width: 480px;
+  max-height: 90vh; overflow-y: auto;
+  padding: var(--space-6);
+  animation: slideUp 0.3s ease;
+}
+@media (min-width: 640px) {
+  .modal { border-radius: var(--radius-xl); }
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* --- Bottom Navigation (shell A, < 900px) ---
+   Grid 1fr per item, bukan space-around: space-around menyisakan celah
+   di tepi dan membuat lebar tiap item tidak sama, sehingga label "Kelompok"
+   dan "Beranda" punya ruang berbeda. Grid memberi semua item lebar sama. */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 50;
+}
+@media (min-width: 900px) {
+  /* Shell B memakai sidebar. Navigasi bawah tidak boleh muncul di sini,
+     dan tidak boleh hilang tanpa pengganti seperti versi lama. */
+  .bottom-nav { display: none; }
+}
+.bottom-nav-item {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 64px;
+  padding: var(--space-1) var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.bottom-nav-item:hover { color: var(--text); }
+.bottom-nav-item:active { background: var(--primary-light); }
+.bottom-nav-item[aria-current='page'] {
+  color: var(--primary);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--primary);
+}
+
+/* --- Tabs --- */
+.tabs {
+  display: flex; gap: var(--space-1);
+  background: var(--bg); border-radius: var(--radius-md);
+  padding: 3px; margin-bottom: var(--space-4);
+}
+.tab {
+  flex: 1; padding: 10px var(--space-3);
+  border-radius: var(--radius-sm); border: none;
+  font-size: var(--text-sm); font-weight: 500;
+  color: var(--muted); background: transparent;
+  cursor: pointer; transition: all 0.15s ease;
+  text-align: center;
+}
+.tab.active {
+  background: var(--surface); color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* --- Search Input --- */
+.search {
+  position: relative; margin-bottom: var(--space-3);
+}
+.search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 16px; pointer-events: none;
+}
+.search input {
+  padding-left: 36px;
+}
+
+/* --- Baris saring + urutan (Kelola User) --- */
+.baris-saring {
+  display: flex; gap: var(--space-2); flex-wrap: wrap;
+  align-items: center; margin-bottom: var(--space-3);
+}
+/* Select di baris saring sengaja kecil dan padat: ini alat, bukan form
+   panjang. Orang memakai ini untuk memfilter, bukan untuk mengisi. */
+.baris-saring select {
+  padding: 8px 10px; font-size: .85rem; min-height: 0;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  /* Native select di HP membuka roda pilihan yang jauh lebih enak dibaca
+     daripada select custom. */
+  max-width: 100%;
+}
+
+/* --- Chip: label kecil di dalam baris (semester, kelas) --- */
+.chip {
+  display: inline-block; font-size: .7rem; line-height: 1.4;
+  padding: 1px 7px; margin-left: 4px;
+  border: 1px solid var(--border); border-radius: 999px;
+  color: var(--muted); background: var(--bg); white-space: nowrap;
+}
+/* "Belum ada kelas" bukan informasi -- itu ketiadaan. Beda warna supaya
+   tidak terbaca sebagai nilai. */
+.chip-kosong { border-style: dashed; opacity: .75; }
+
+/* --- Table --- */
+table { border-collapse: collapse; width: 100%; font-size: var(--text-sm); }
+th, td { border: 1px solid var(--border); padding: var(--space-2) var(--space-3); text-align: center; }
+th { background: var(--bg); font-weight: 600; }
+td.kiri, th.kiri { text-align: left; }
+
+/* --- Progress Bar --- */
+.meter { height: 7px; background: var(--border); border-radius: var(--radius-full); overflow: hidden; }
+.meter-fill { display: block; height: 100%; background: var(--primary); border-radius: var(--radius-full); transition: width 0.3s ease; }
+
+/* --- Utilities --- */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-sm { font-size: var(--text-sm); }
+.text-xs { font-size: var(--text-xs); }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-primary { color: var(--primary); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-error { color: var(--error); }
+.text-muted { color: var(--muted); }
+.mt-1 { margin-top: var(--space-1); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.flex-1 { flex: 1; }
+.hidden { display: none; }
+
+/* --- Transitions --- */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* --- Print --- */
+@media print {
+  body { background: #fff; color: #000; }
+  .nocetak { display: none !important; }
+  .bottom-nav { display: none !important; }
+  th, td { border: 1px solid #000; }
+}

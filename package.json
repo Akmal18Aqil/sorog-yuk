@@ -1,0 +1,28 @@
+{
+  "name": "sorogan-digital",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "cek:layout": "node tools/ukur-layout.mjs",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@nuxtjs/supabase": "^2.0.10",
+    "nuxt": "^4.5.2",
+    "vue": "^3.5.41",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@vite-pwa/nuxt": "^1.1.1",
+    "typescript": "~5.9",
+    "vitest": "^4.1.10",
+    "vue-tsc": "^3.3.10"
+  }
+}
