@@ -1,5 +1,6 @@
 import type { Database } from '#shared/types/database'
 import type { Ustadz } from '#shared/types/sorogan'
+import { bersihkanCacheUstadz } from '~/utils/keluar'
 import { ambilUstadz, hubungkanUstadz } from '~/utils/repo'
 
 const KUNCI = 'sorogan.ustadz'
@@ -54,8 +55,7 @@ export function useUstadz() {
    * sebelum sesi benar-benar putus.
    */
   async function keluar() {
-    localStorage.removeItem(KUNCI)
-    localStorage.removeItem('sorogan.acuan')
+    bersihkanCacheUstadz()
     ustadz.value = null
     await sb.auth.signOut()
     await navigateTo('/')

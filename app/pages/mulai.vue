@@ -59,12 +59,13 @@ function jalan(santri: Santri) {
 <template>
   <div>
     <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="section-header">
       <div>
         <h1 style="margin: 0">Mulai</h1>
         <p class="subtitle" style="margin: 2px 0 0">{{ ustadz?.nama }}</p>
       </div>
-      <button class="kecil" @click="keluar">Keluar</button>
+      <!-- Desktop punya "Keluar" di sidebar; di HP sidebar tidak tampil. -->
+      <button class="kecil hanya-hp" @click="keluar">Keluar</button>
     </div>
 
     <p v-if="galat" class="galat">{{ galat }}</p>
@@ -84,6 +85,7 @@ function jalan(santri: Santri) {
         <button
           v-for="k in acuan.kelompok" :key="k.id"
           class="tab" :class="{ active: kelompok?.id === k.id }"
+          :aria-pressed="kelompok?.id === k.id"
           @click="pilihKelompok(k)"
         >
           {{ k.nama }}
@@ -98,11 +100,15 @@ function jalan(santri: Santri) {
         <button
           v-for="t in TINGKAT" :key="t"
           class="tab" :class="{ active: tingkat === t }"
+          :aria-pressed="tingkat === t"
           @click="tingkat = t"
         >
           {{ LABEL_TINGKAT[t] }}
         </button>
       </div>
+      <p v-if="kurangStok.length" class="galat" style="margin-top: calc(-1 * var(--space-2))">
+        Bank soal kurang untuk tipe: {{ kurangStok.join(', ') }}.
+      </p>
     </div>
 
     <!-- Mode -->
@@ -112,6 +118,7 @@ function jalan(santri: Santri) {
         <button
           v-for="m in MODE" :key="m"
           class="tab" :class="{ active: mode === m }"
+          :aria-pressed="mode === m"
           @click="mode = m"
         >
           {{ LABEL_MODE[m] }}
@@ -123,16 +130,20 @@ function jalan(santri: Santri) {
     <div class="section">
       <div class="section-header">
         <h2 class="section-title">Santri</h2>
-        <span v-if="anggota.length" class="text-muted text-sm">{{ jmlSudah }}/{{ anggota.length }}</span>
+        <Badge
+          v-if="anggota.length"
+          :variant="jmlSudah === anggota.length ? 'success' : 'primary'"
+          :label="`${jmlSudah}/${anggota.length} selesai`"
+        />
       </div>
 
       <div v-if="acuan && !anggota.length" class="text-muted text-sm">Kelompok ini belum berisi santri.</div>
 
       <div v-for="s in anggota" :key="s.id" class="kartu" style="padding: 0; overflow: hidden">
-        <button type="button" class="list-item" @click="jalan(s)">
-          <Avatar :name="s.nama" :size="sudah(s) ? 'sm' : 'md'" :style="sudah(s) ? 'opacity: 0.6' : ''" />
+        <button type="button" class="list-item" :style="sudah(s) ? 'opacity: 0.6' : ''" @click="jalan(s)">
+          <Avatar :name="s.nama" />
           <div class="list-item-content">
-            <div class="list-item-title" :style="sudah(s) ? 'opacity: 0.6' : ''">{{ s.nama }}</div>
+            <div class="list-item-title">{{ s.nama }}</div>
             <div class="list-item-sub">
               <Badge v-if="sudah(s)" variant="success" label="Selesai" />
               <span v-else class="text-muted text-xs">{{ jmlSoal }} soal</span>
@@ -140,16 +151,6 @@ function jalan(santri: Santri) {
           </div>
         </button>
       </div>
-    </div>
-
-    <p v-if="kurangStok.length" class="galat">
-      Bank soal kurang untuk tipe: {{ kurangStok.join(', ') }}.
-    </p>
-
-    <!-- Bottom Actions -->
-    <div class="baris" style="margin-top: var(--space-4)">
-      <button style="flex: 1" @click="navigateTo('/hasil')">Hasil & Leger</button>
-      <button style="flex: 1" @click="navigateTo('/kenaikan')">Kenaikan Kelas</button>
     </div>
   </div>
 </template>

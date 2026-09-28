@@ -143,6 +143,11 @@ body {
   .app-main {
     padding: var(--space-6);
     padding-bottom: var(--space-8);
+    /* Tanpa batas lebar, satu tab "Kelompok 1" melebar 400px di layar
+       1900px, dan tiap baris Santri jadi kartu kosong yang separuhnya
+       tidak berisi apa pun. Lebar baca yang nyaman sekitar 75 karakter;
+       lebih dari itu isi melayang jauh dariipsis dan sulit dipindai. */
+    max-width: 1200px;
   }
 }
 
@@ -307,6 +312,18 @@ textarea { resize: vertical; min-height: 80px; }
   border-radius: var(--radius-lg);
   transition: background 0.15s ease;
   text-decoration: none; color: inherit;
+  /* `.list-item` dipakai sebagai <a>, <div>, DAN <button> (baris Santri di
+     /mulai, kandidat di Kelola User). <button> punya `width: auto` bawaan,
+     jadi tanpa ini tombolnya menyusut jadi selebar isinya: kartu 1000px
+     dengan tombol 200px di dalamnya, dan separuh kartu jadi area mati
+     yang kelihatan seperti bisa diklik. */
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  /* Baris di dalam `.kartu` tidak perlu bingkai sendiri: kartu sudah
+     membingkai. Yang berubah (terpilih) tetap kelihatan lewat
+     `borderColor` sebaris, mis. di daftar kandidat Kelola User. */
+  border-color: transparent;
 }
 .list-item:hover { background: var(--bg); }
 .list-item-content { flex: 1; min-width: 0; }
@@ -321,6 +338,9 @@ textarea { resize: vertical; min-height: 80px; }
   margin-bottom: var(--space-3);
 }
 .section-title { font-size: var(--text-lg); font-weight: 600; }
+/* Di dalam .section-header, h2 bawaan margin vertikalnya membuat judul
+   duduk tidak sejajar dengan angka penghitung di sebelah kanan. */
+.section-header .section-title { margin: 0; }
 
 /* --- Modal/Dialog --- */
 .overlay {
@@ -390,6 +410,12 @@ textarea { resize: vertical; min-height: 80px; }
   background: var(--bg); border-radius: var(--radius-md);
   padding: 3px; margin-bottom: var(--space-4);
 }
+/* Di layar lebar, tab selebar 1200px membuat "Ujian" jadi tombol raksasa
+   dengan dua huruf di tengahnya. `.tab { flex: 1 }` tetap dipakai di HP
+   (jangkauan jari), di desktop tab cukup selebar isinya. */
+@media (min-width: 900px) {
+  .tabs { width: fit-content; max-width: 100%; }
+}
 .tab {
   flex: 1; padding: 10px var(--space-3);
   border-radius: var(--radius-sm); border: none;
@@ -453,6 +479,11 @@ td.kiri, th.kiri { text-align: left; }
 .meter-fill { display: block; height: 100%; background: var(--primary); border-radius: var(--radius-full); transition: width 0.3s ease; }
 
 /* --- Utilities --- */
+/* Shell A (HP) dan shell B (desktop) punya tempat logout masing-masing:
+   sidebar di desktop, header halaman di HP. Tombol yang ada di dua-duanya
+   hanya bikin ragu ("keluar dua kali?"), jadi util ini untuk memilih satu. */
+.hanya-hp { display: block; }
+@media (min-width: 900px) { .hanya-hp { display: none; } }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .text-sm { font-size: var(--text-sm); }

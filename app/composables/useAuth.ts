@@ -1,4 +1,5 @@
 import type { Database } from '#shared/types/database'
+import { bersihkanCacheUstadz } from '~/utils/keluar'
 
 type Role = 'superadmin' | 'ustadz' | 'santri' | null
 
@@ -92,10 +93,17 @@ export function useAuth() {
    * Urutannya: `signOut` DULU, baru `navigateTo`. Kalau navigasi duluan,
    * middleware masih membaca sesi yang belum putus dan mengembalikannya lagi
    * ke halaman admin -- persis gejala "keluar tapi malah balik ke /admin".
+   *
+   * Cache ustadz ikut dibuang di sini juga, bukan cuma di `useUstadz.keluar`:
+   * tombol "Keluar" yang paling sering dipakai justru yang di sidebar, dan
+   * dia memanggil fungsi INI. Kalau cache-nya tertinggal, orang berikutnya
+   * yang memakai perangkat bersama dan kebetulan offline masih membaca nama
+   * ustadz sebelumnya dari `localStorage`.
    */
   async function keluar(): Promise<void> {
     await sb.auth.signOut()
     role.value = null
+    bersihkanCacheUstadz()
     await navigateTo('/')
   }
 
