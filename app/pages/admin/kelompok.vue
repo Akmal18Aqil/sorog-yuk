@@ -22,6 +22,22 @@ const anggotaTarget = ref<any>(null)
 
 const form = ref({ nama: '', urutan: null as number | null, tingkat: '' as string | null })
 
+/**
+ * Urutan berikutnya DALAM kelas yang dipilih, bukan dalam seluruh daftar.
+ * Tiap kelas punya kelompok 1, 2, 3 sendiri, jadi BK2 yang baru dimulai
+ * seharusnya mengusulkan 1, bukan 5 karena sudah ada 4 kelompok BK1.
+ * Tanpa ini, urutan BK2 selalu ganjil dan harus diperbaiki manual.
+ */
+const urutanBerikutKelas = computed(() =>
+  daftar.value
+    .filter(k => (k.tingkat ?? null) === (form.value.tingkat ?? null))
+    .reduce((m, k) => Math.max(m, Number(k.urutan) || 0), 0) + 1)
+
+// Ikut kelas yang dipilih di form: mengganti kelas mereset default urutan.
+watch(() => form.value.tingkat, () => {
+  if (!editItem.value) form.value.urutan = urutanBerikutKelas.value
+})
+
 async function muat() {
   try {
     const [k, s, kl] = await Promise.all([ambilKelompok(sb), ambilSemuaSantri(sb), ambilKelas(sb)])
@@ -33,9 +49,40 @@ async function muat() {
 
 onMounted(muat)
 
+// ——— Tampilan dikelompokkan per kelas ———
+// Daftar mentah cuma urut `urutan` global, jadi "Kelompok 1 BK2" bisa muncul
+// di bawah "Kelompok 4 BK1". Itu daftar gudang, bukan daftar per kelas yang
+// dipakai mentor di /mulai. Dikelompokkan di sini dengan data yang sama,
+// tanpa memanggil database sekali pun lagi.
+const namaKelas = computed(() =>
+  new Map(daftarKelas.value.map(k => [k.kode, k.nama])))
+
+const daftarPerKelas = computed(() => {
+  const urutKelas = new Map(daftarKelas.value.map((k, i) => [k.kode, i]))
+  const kunci = (tingkat: string | null | undefined) =>
+    tingkat == null || tingkat === '' ? null : tingkat
+  const perKelas = new Map<string | null, any[]>()
+  for (const k of daftar.value) {
+    const t = kunci(k.tingkat)
+    if (!perKelas.has(t)) perKelas.set(t, [])
+    perKelas.get(t)!.push(k)
+  }
+  return [...perKelas.entries()]
+    // Kelas dikenal dulu, urut master; "Tanpa kelas" selalu paling bawah.
+    .sort(([a], [b]) =>
+      a === b ? 0 : a === null ? 1 : b === null ? -1
+      : (urutKelas.get(a) ?? 9999) - (urutKelas.get(b) ?? 9999))
+    .map(([tingkat, isi]) => ({
+      tingkat,
+      judul: tingkat === null ? 'Tanpa kelas'
+        : namaKelas.value.get(tingkat) ?? tingkat,
+      isi,
+    }))
+})
+
 function bukaTambah() {
   editItem.value = null
-  form.value = { nama: '', urutan: daftar.value.length + 1, tingkat: null }
+  form.value = { nama: '', urutan: urutanBerikutKelas.value, tingkat: null }
   formVisible.value = true
 }
 
@@ -129,17 +176,22 @@ async function hapusAnggota(santriId: number) {
     <h1 style="margin-bottom: var(--space-4)">Kelompok</h1>
     <p v-if="galat" class="galat">{{ galat }}</p>
 
-    <div v-for="k in daftar" :key="k.id" class="kartu" style="padding: 0; overflow: hidden">
+    <!-- Daftar per kelas. Kelompok berkumpul dengan kelasnya sendiri (BK1
+         dengan BK1, BK2 dengan BK2), persis cara mentor melihatnya di /mulai.
+         Tanpa ini, "Kelompok 1 BK2" muncul di bawah "Kelompok 4 BK1" hanya
+         karena urutan global -- dan dengan nama yang sama antar kelas,
+         mustahil membaca mana milik siapa. -->
+    <template v-for="g in daftarPerKelas" :key="g.tingkat ?? 'tanpa-kelas'">
+      <div class="section-header mt-4">
+        <h2 class="section-title">{{ g.judul }}</h2>
+        <Badge :label="`${g.isi.length} kelompok`" />
+      </div>
+
+      <div v-for="k in g.isi" :key="k.id" class="kartu" style="padding: 0; overflow: hidden">
       <div class="list-item">
         <span class="avatar">👨‍👩‍👧</span>
         <div class="list-item-content">
-          <div class="list-item-title">
-            {{ k.nama }}
-            <!-- "Kelas mana" adalah identitas kelompok, bukan catatan: tanpa
-                 ini "Kelompok 3" tidak bisa dijawab "anak-anak BK apa?". -->
-            <span v-if="k.tingkat" class="chip">{{ k.tingkat }}</span>
-            <span v-else class="chip chip-kosong">Tanpa kelas</span>
-          </div>
+          <div class="list-item-title">{{ k.nama }}</div>
           <div class="list-item-sub">{{ (k.kelompok_santri ?? []).length }} anggota</div>
         </div>
         <div class="list-item-actions">
@@ -148,7 +200,8 @@ async function hapusAnggota(santriId: number) {
           <button class="kecil text-error" @click="hapusTarget = k">Hapus</button>
         </div>
       </div>
-    </div>
+      </div>
+    </template>
 
     <EmptyState v-if="!daftar.length" icon="👨‍👩‍👧" message="Belum ada kelompok." />
 

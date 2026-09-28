@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import {
-  JML_SOAL_BK1, MODE, PER_TIPE_BK2, TINGKAT,
+  JML_SOAL_BK1, MODE, PER_TIPE_BK2,
+  isTingkat,
   type Kelompok, type Mode, type Santri, type Tingkat,
 } from '#shared/types/sorogan'
 import { tipeKurangStok } from '#shared/domain/pembagian'
+import { kelasBerisiKelompok, kelompokKelas, kelompokTanpaKelas } from '#shared/domain/kelompok'
 import { santriKelompok } from '~/utils/repo'
 
 definePageMeta({ middleware: 'auth' })
 
+// Cukup SATU kunci: kelompok sudah menentukan kelasnya sendiri, jadi
+// menyimpan kelas terpisah berarti dua nilai yang bisa saling bertentangan.
 const KUNCI_TERAKHIR = 'sorogan.kelompok-terakhir'
 
 const { ustadz, keluar } = useUstadz()
@@ -21,6 +25,15 @@ const adaKemajuan = ref(false)
 
 const LABEL_TINGKAT: Record<Tingkat, string> = { BK1: 'BK 1 — lafad', BK2: 'BK 2 — tarkib' }
 const LABEL_MODE: Record<Mode, string> = { ujian: 'Ujian', harian: 'Sorogan harian' }
+
+// ——— kelas dan kelompoknya ———
+// Kelas yang boleh dipilih hanya yang punya kelompok; kelompok yang tampil
+// hanya milik kelas terpilih. Aturannya di shared/domain, bukan di sini.
+const semuaKelompok = computed<Kelompok[]>(() => acuan.value?.kelompok ?? [])
+const kelasTersedia = computed<Tingkat[]>(() => kelasBerisiKelompok(semuaKelompok.value))
+const kelompokSatuKelas = computed<Kelompok[]>(() =>
+  kelompokKelas(semuaKelompok.value, tingkat.value))
+const tanpaKelas = computed<Kelompok[]>(() => kelompokTanpaKelas(semuaKelompok.value))
 
 const jmlSoal = computed(() => tingkat.value === 'BK1' ? JML_SOAL_BK1 : PER_TIPE_BK2 * 4)
 
@@ -56,14 +69,30 @@ const kurangStok = computed(() =>
 onMounted(async () => {
   await muat()
   adaKemajuan.value = pulihkan()
-  const terakhir = Number(localStorage.getItem(KUNCI_TERAKHIR))
-  kelompok.value = acuan.value?.kelompok.find(k => k.id === terakhir)
-    ?? acuan.value?.kelompok[0] ?? null
+
+  // Kelompok terakhir yang dipakai membawa kelasnya sendiri: itu sebabnya
+  // hanya satu kunci yang disimpan, dan dua pilihan tidak bisa bertentangan.
+  const terakhir = semuaKelompok.value
+    .find(k => k.id === Number(localStorage.getItem(KUNCI_TERAKHIR)))
+  const kelasTerakhir = terakhir && isTingkat(terakhir.tingkat) ? terakhir.tingkat : null
+
+  tingkat.value = kelasTerakhir ?? kelasTersedia.value[0] ?? 'BK1'
+  // Kalau kelas kelompok terakhir tidak sama dengan kelas terpilih (mis.
+  // kelasnya sudah diubah admin), kelompok itu TIDAK dipertahankan: itu akan
+  // menilai anak dari rombel yang berbeda dari yang tertulis di layar.
+  kelompok.value = (kelasTerakhir === tingkat.value ? terakhir : null)
+    ?? kelompokSatuKelas.value[0] ?? null
 })
 
-function pilihKelompok(k: Kelompok) {
+/** Pindah kelas. Kelompok ikut pindah: pilihan lama hampir pasti bukan milik kelas ini. */
+function pilihKelas(t: Tingkat) {
+  tingkat.value = t
+  pilihKelompok(kelompokSatuKelas.value[0] ?? null)
+}
+
+function pilihKelompok(k: Kelompok | null) {
   kelompok.value = k
-  localStorage.setItem(KUNCI_TERAKHIR, String(k.id))
+  if (k) localStorage.setItem(KUNCI_TERAKHIR, String(k.id))
 }
 
 function jalan(santri: Santri) {
@@ -95,18 +124,40 @@ function jalan(santri: Santri) {
       <button class="utama" @click="navigateTo('/nilai')">Lanjutkan</button>
     </div>
 
-    <!-- Satu keputusan, bukan tiga section: kelompok + tingkat + keperluan
-         dipilih berurutan sebelum ada santri yang bisa dinilai. Dipisah jadi
-         tiga section, tiap pilihannya memakan satu pita layar penuh dan
-         daftar Santri terdorong jauh ke bawah. -->
+    <!-- Satu keputusan, bukan tiga section: kelas + kelompok + keperluan
+         dipilih berurutan sebelum ada santri yang bisa dinilai.
+         Urutannya KELAS dulu, baru kelompok: tiap kelas punya kelompok 1, 2, 3
+         sendiri, jadi daftar kelompok yang tidak disaring kelasnya akan
+         memuat beberapa "Kelompok 1" yang berbeda tanpa cara membedakannya. -->
     <div class="kartu pilih">
       <div class="pilih-baris">
+        <div class="pilih-grup">
+          <span class="pilih-label" id="lbl-kelas">Kelas</span>
+          <div v-if="!acuan" class="text-muted text-sm">Memuat...</div>
+          <div v-else-if="!kelasTersedia.length" class="text-muted text-sm">
+            Belum ada satu pun kelompok. Tambahkan di Kelola Kelompok.
+          </div>
+          <div v-else class="tabs" role="group" aria-labelledby="lbl-kelas">
+            <button
+              v-for="t in kelasTersedia" :key="t"
+              class="tab" :class="{ active: tingkat === t }"
+              :aria-pressed="tingkat === t"
+              @click="pilihKelas(t)"
+            >
+              {{ LABEL_TINGKAT[t] }}
+            </button>
+          </div>
+        </div>
+
         <div class="pilih-grup pilih-grup-luas">
           <span class="pilih-label" id="lbl-kelompok">Kelompok</span>
           <div v-if="!acuan" class="text-muted text-sm">Memuat...</div>
+          <div v-else-if="!kelompokSatuKelas.length" class="text-muted text-sm">
+            {{ LABEL_TINGKAT[tingkat] }} belum punya kelompok.
+          </div>
           <div v-else class="tabs" role="group" aria-labelledby="lbl-kelompok">
             <button
-              v-for="k in acuan.kelompok" :key="k.id"
+              v-for="k in kelompokSatuKelas" :key="k.id"
               class="tab" :class="{ active: kelompok?.id === k.id }"
               :aria-pressed="kelompok?.id === k.id"
               @click="pilihKelompok(k)"
@@ -115,20 +166,6 @@ function jalan(santri: Santri) {
               <!-- Sisa yang belum dinilai hari ini. Tanpa ini mentor tidak
                    tahu kelompok mana yang masih ada kerjaannya. -->
               <span v-if="sisa(k) > 0" class="tab-sisa">{{ sisa(k) }}</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="pilih-grup">
-          <span class="pilih-label" id="lbl-tingkat">Tingkat</span>
-          <div class="tabs" role="group" aria-labelledby="lbl-tingkat">
-            <button
-              v-for="t in TINGKAT" :key="t"
-              class="tab" :class="{ active: tingkat === t }"
-              :aria-pressed="tingkat === t"
-              @click="tingkat = t"
-            >
-              {{ LABEL_TINGKAT[t] }}
             </button>
           </div>
         </div>
@@ -150,6 +187,14 @@ function jalan(santri: Santri) {
 
       <p v-if="kurangStok.length" class="galat" style="margin: var(--space-3) 0 0">
         Bank soal kurang untuk tipe: {{ kurangStok.join(', ') }}.
+      </p>
+
+      <!-- Kelompok yang kelasnya belum diatur tidak bisa dinilai -- format
+           ujiannya ditentukan kelas. Disebutkan supaya anggotanya tidak
+           seolah-olah hilang, bukan dibiarkan dicari sendiri. -->
+      <p v-if="tanpaKelas.length" class="galat" style="margin: var(--space-2) 0 0">
+        {{ tanpaKelas.map(k => k.nama).join(', ') }} belum punya kelas, jadi tidak muncul
+        di kelas mana pun. Atur di Kelola Kelompok.
       </p>
     </div>
 
@@ -199,9 +244,12 @@ function jalan(santri: Santri) {
   align-items: start;
 }
 @media (min-width: 900px) {
-  /* Kelompok diberi kolom terlebar: tabnya bisa paling banyak (satu per
-     rombel), sedangkan tingkat dan keperluan maksimal dua. */
-  .pilih-baris { grid-template-columns: 2fr 1fr 1fr; }
+  /* Kelompok dapat kolom terlebar: itulah satu-satunya daftar yang boleh
+     panjang (satu tab per rombel di kelas itu). Kelas dapat minmax dengan
+     minimum kontennya: persis di ambang 900px dua tab kelas butuh ~210px
+     tapi kolomnya cuma dapat ~197px, jadi tanpa ini ada serpihan 14px yang
+     bisa digeser. Keperluan muat dengan 1fr biasa. */
+  .pilih-baris { grid-template-columns: minmax(max-content, 1fr) 2fr 1fr; }
 }
 
 .pilih-grup { min-width: 0; }
