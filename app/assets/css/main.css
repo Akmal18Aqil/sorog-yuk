@@ -410,12 +410,6 @@ textarea { resize: vertical; min-height: 80px; }
   background: var(--bg); border-radius: var(--radius-md);
   padding: 3px; margin-bottom: var(--space-4);
 }
-/* Di layar lebar, tab selebar 1200px membuat "Ujian" jadi tombol raksasa
-   dengan dua huruf di tengahnya. `.tab { flex: 1 }` tetap dipakai di HP
-   (jangkauan jari), di desktop tab cukup selebar isinya. */
-@media (min-width: 900px) {
-  .tabs { width: fit-content; max-width: 100%; }
-}
 .tab {
   flex: 1; padding: 10px var(--space-3);
   border-radius: var(--radius-sm); border: none;
@@ -423,6 +417,18 @@ textarea { resize: vertical; min-height: 80px; }
   color: var(--muted); background: transparent;
   cursor: pointer; transition: all 0.15s ease;
   text-align: center;
+  /* Label satu baris, selalu. Tanpa ini "BK 1 — lafad" dan "Kelompok 2"
+     tinggal satu kata sebelum pecah, dan tinggi baris ikut bergeser. */
+  white-space: nowrap;
+}
+/* Di layar lebar, tab selebar 1200px membuat "Ujian" jadi tombol raksasa
+   dengan dua huruf di tengahnya. Tapi `flex: 1` juga HARUS dihapus di sini,
+   bukan hanya ukuran wadahnya: `flex: 1` berarti basis 0, jadi begitu
+   wadahnya dikecilkan (`fit-content`) setiap tab jatuh ke min-content dan
+   teksnya pecah jadi dua baris. */
+@media (min-width: 900px) {
+  .tabs { width: fit-content; max-width: 100%; }
+  .tab { flex: 0 0 auto; }
 }
 .tab.active {
   background: var(--surface); color: var(--text);
