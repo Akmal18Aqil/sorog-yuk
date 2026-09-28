@@ -3,7 +3,7 @@ import type { Database, JenisAkun } from '#shared/types/database'
 import {
   type UstadzAdmin, type SantriAdmin,
   ambilSemuaUstadz, ambilSemuaSantri, ambilKelompok,
-  ubahUstadz, hapusUstadz, ubahSantri, hapusSantri,
+  ubahUstadz, hapusUstadz, ubahSantri, hapusSantri, tambahUstadz,
   setAktifUstadz, setAktifSantri,
   buatAkun, tautkanAkun, lepasAkun,
 } from '~/utils/repo'
@@ -186,6 +186,12 @@ const lencanaSemester = (s: SantriAdmin) => s.semester == null ? 'Sem ?' : `Sem 
 const targetId = ref<number | null>(null)
 const cariTarget = ref('')
 
+// Mentor yang BENAR-BENAR baru: belum punya baris sama sekali. Tanpa mode ini,
+// admin tidak bisa menambah siapa pun -- hanya menautkan akun ke nama yang
+// sudah ada.
+const namaBaru = ref('')
+const buatBaru = ref(false)
+
 const kandidat = computed(() => {
   const q = cariTarget.value.trim().toLowerCase()
   const pool = formRole.value === 'ustadz' ? daftarUstadz.value : daftarSantri.value
@@ -201,7 +207,16 @@ function bukaTambah(role: 'ustadz' | 'santri') {
   form.value = { email: '', password: '' }
   targetId.value = null
   cariTarget.value = ''
+  namaBaru.value = ''
+  buatBaru.value = false
   formVisible.value = true
+}
+
+function pilihModeBaru(nilai: boolean) {
+  buatBaru.value = nilai
+  targetId.value = null
+  namaBaru.value = ''
+  galat.value = ''
 }
 
 async function simpanTambah() {
@@ -211,24 +226,41 @@ async function simpanTambah() {
   if (form.value.password.length < 6) {
     toast.error('Kata sandi minimal 6 karakter.'); return
   }
-  if (targetId.value == null) {
+  if (buatBaru.value && !namaBaru.value.trim()) {
+    toast.error('Nama mentornya wajib diisi.'); return
+  }
+  if (!buatBaru.value && targetId.value == null) {
     toast.error('Pilih orangnya dulu — akun harus menempel ke nama.'); return
   }
+
   sibuk.value = true
   try {
-    // Dua langkah, urutannya penting: buat akun dulu, baru tautkan. Kalau
-    // tautkan dulu, `auth_id` menunjuk akun yang belum ada.
+    // Baris dibuat lebih dulu kalau memang baru. Alasannya soal kegagalan:
+    // kalau baris dibuat belakangan dan langkah akunnya gagal, yang tertinggal
+    // adalah akun tanpa nama -- tidak terlihat di mana-mana dan tidak bisa
+    // dibersihkan dari UI. Baris tanpa akun justru tidak masalah: ia muncul di
+    // daftar "pilih orang" seperti Ust. Akmal sekarang, dan tinggal dicoba
+    // lagi.
+    const idBaris = buatBaru.value
+      ? await tambahUstadz(sb, namaBaru.value.trim())
+      : targetId.value!
+
+    // Akun dulu, baru tautkan. Kalau tautkan dulu, `auth_id` menunjuk akun
+    // yang belum ada.
     const akun = await buatAkun(sb, {
       email: form.value.email.trim(),
       password: form.value.password,
     })
-    await tautkanAkun(sb, formRole.value, targetId.value, akun.auth_id)
-    toast.success('Akun dibuat dan ditautkan.')
+    await tautkanAkun(sb, formRole.value, idBaris, akun.auth_id)
+    toast.success(buatBaru.value
+      ? `${namaBaru.value.trim()} ditambahkan dan akunnya dibuat.`
+      : 'Akun dibuat dan ditautkan.')
     formVisible.value = false
     await muat()
   } catch (e) {
-    // Akun sudah terbuat tapi tautkan gagal: biarkan apa adanya supaya tidak
-    // ada akun yatim tanpa penjelasan. Pesannya menyebut namanya.
+    // Kegagalan di tengah tidak dihapus paksa. Kalau baris sudah terbuat dan
+    // tautkan gagal, baris itu masih berguna -- dan pesannya menyebut apa
+    // yang belum selesai, bukan sekadar "gagal".
     toast.error((e as Error).message)
   }
   finally { sibuk.value = false }
@@ -476,26 +508,65 @@ function copyKode(kode: string) {
           <div class="modal">
             <h2 style="margin: 0 0 var(--space-2)">Buat Akun {{ formRole === 'ustadz' ? 'Mentor' : 'Santri' }}</h2>
             <p class="redup" style="margin: 0 0 var(--space-4); font-size: .85rem">
-              Akun menempel ke orang yang sudah terdaftar. Baris dan riwayat nilainya tidak dibuat ulang.
+              <template v-if="buatBaru">
+                Mentor <b>baru</b>: barisnya dibuat sekarang, lalu akunnya
+                menempel ke baris itu. Riwayat penilaian tidak ada -- ini orang
+                yang belum pernah mengajar.
+              </template>
+              <template v-else>
+                Akun menempel ke orang yang sudah terdaftar. Baris dan riwayat
+                nilainya tidak dibuat ulang.
+              </template>
             </p>
 
-            <label for="f-cari">Pilih orang</label>
-            <input id="f-cari" v-model="cariTarget" type="search" placeholder="Ketik nama untuk mencari…">
-            <div v-if="kandidat.length" class="list" style="max-height: 180px; overflow-y: auto">
+            <!-- Mode: pakai nama yang sudah ada -->
+            <template v-if="!buatBaru">
+              <label for="f-cari">Pilih orang</label>
+              <input id="f-cari" v-model="cariTarget" type="search" placeholder="Ketik nama untuk mencari…">
+              <div v-if="kandidat.length" class="list" style="max-height: 180px; overflow-y: auto">
+                <button
+                  v-for="k in kandidat.slice(0, 20)" :key="k.id" type="button" class="list-item"
+                  :style="{ borderColor: targetId === k.id ? 'var(--utama)' : 'transparent' }"
+                  @click="targetId = k.id"
+                >
+                  <div class="list-item-content">
+                    <div class="list-item-title">{{ k.nama }}</div>
+                    <div class="list-item-sub">{{ 'kode' in k ? k.kode : '' }}</div>
+                  </div>
+                </button>
+              </div>
+              <p v-else class="redup" style="font-size: .85rem">
+                {{ cariTarget ? 'Tidak ada yang cocok.' : `Semua ${formRole === 'ustadz' ? 'mentor' : 'santri'} sudah punya akun.` }}
+              </p>
+
+              <!-- Hanya untuk mentor. Santri berasal dari impor, bukan dari
+                   ketikan admin: satu orang bisa mendaftar sendiri dengan nama
+                   yang mirip, dan itu tidak bisa dibedakan dari yang asli. -->
               <button
-                v-for="k in kandidat.slice(0, 20)" :key="k.id" type="button" class="list-item"
-                :style="{ borderColor: targetId === k.id ? 'var(--utama)' : 'transparent' }"
-                @click="targetId = k.id"
+                v-if="formRole === 'ustadz'"
+                class="penuh"
+                style="margin-top: var(--space-3)"
+                @click="pilihModeBaru(true)"
+              >+ Tambah mentor baru</button>
+            </template>
+
+            <!-- Mode: nama baru -->
+            <template v-else>
+              <label for="f-baru">Nama mentor</label>
+              <input
+                id="f-baru" v-model="namaBaru" type="text" autocomplete="off"
+                placeholder="Ust. Nama Lengkap"
               >
-                <div class="list-item-content">
-                  <div class="list-item-title">{{ k.nama }}</div>
-                  <div class="list-item-sub">{{ 'kode' in k ? k.kode : '' }}</div>
-                </div>
-              </button>
-            </div>
-            <p v-else class="redup" style="font-size: .85rem">
-              {{ cariTarget ? 'Tidak ada yang cocok.' : `Semua ${formRole === 'ustadz' ? 'mentor' : 'santri'} sudah punya akun.` }}
-            </p>
+              <p class="redup" style="font-size: .75rem; margin: 4px 0 0">
+                Tulis persis seperti akan dipanggil. Nama ini tidak bisa diubah
+                dari halaman ini setelah akunnya jadi.
+              </p>
+              <button
+                class="penuh"
+                style="margin-top: var(--space-3)"
+                @click="pilihModeBaru(false)"
+              >← Pilih dari daftar</button>
+            </template>
 
             <label for="f-email" style="display: block; margin-top: var(--space-3)">Email</label>
             <input id="f-email" v-model="form.email" type="email" placeholder="email@contoh.com">
@@ -504,8 +575,13 @@ function copyKode(kode: string) {
 
             <div class="baris mt-4">
               <button style="flex: 1" @click="formVisible = false">Batal</button>
-              <button class="utama" style="flex: 1" :disabled="sibuk || targetId == null" @click="simpanTambah">
-                {{ sibuk ? 'Membuat...' : 'Buat & Tautkan' }}
+              <button
+                class="utama"
+                style="flex: 1"
+                :disabled="sibuk || (!buatBaru && targetId == null) || (buatBaru && !namaBaru.trim())"
+                @click="simpanTambah"
+              >
+                {{ sibuk ? 'Menyimpan...' : 'Buat & Tautkan' }}
               </button>
             </div>
           </div>
