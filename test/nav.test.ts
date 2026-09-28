@@ -41,6 +41,16 @@ describe('navigasi', () => {
       expect(navUntuk(role)[0]?.to).toBeTruthy()
     }
   })
+
+  it('kelas kuliah ada di sidebar tapi tidak memakan bottom nav', () => {
+    // Kelas kuliah jarang dipakai, dan tombolnya merusak (naik semester),
+    // jadi cukup di sidebar.
+    const semua = navUntuk('superadmin')
+    const kuliah = semua.find(i => i.to === '/admin/kelas-kuliah')
+    expect(kuliah).toBeTruthy()
+    expect(kuliah!.utama).toBe(false)
+    expect(navUtama('superadmin').map(i => i.to)).not.toContain('/admin/kelas-kuliah')
+  })
 })
 
 describe('halaman yang berdiri sendiri', () => {

@@ -1,8 +1,10 @@
+import { hanyaSuperadmin } from '~/utils/nav'
+
 /**
  * Middleware autentikasi berbasis role.
  *
  * Cek role user → redirect ke route yang sesuai:
- *  - /admin/* → harus superadmin
+ *  - /admin/* dan /super-adminn → harus superadmin
  *  - /mulai, /nilai, /hasil, /kenaikan → harus ustadz
  *  - /santri/* → harus santri
  *
@@ -28,8 +30,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
 })
 
 function redirectIfWrongRole(role: string, path: string) {
-  // Admin routes
-  if (path.startsWith('/admin')) {
+  // Admin routes. `/super-adminn` ikut di sini walau tidak berawalan `/admin`
+  // -- soal-alasannya ditulis di `utils/nav.ts`.
+  if (hanyaSuperadmin(path)) {
     if (role !== 'superadmin') return navigateTo(role === 'ustadz' ? '/mulai' : '/santri/dashboard')
     return
   }

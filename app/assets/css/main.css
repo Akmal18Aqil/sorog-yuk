@@ -477,9 +477,28 @@ td.kiri, th.kiri { text-align: left; }
 .flex-1 { flex: 1; }
 .hidden { display: none; }
 
-/* --- Transitions --- */
+/* --- Transisi perpindahan halaman ---
+   Dipasangkan dengan `pageTransition` di nuxt.config. Tanpa ini, pindah nav
+   terbaca sebagai refresh: halaman lama hilang, jeda, lalu halaman baru
+   muncul setelah datanya selesai diambil. */
+.page-enter-active { transition: opacity 0.16s ease; }
+.page-enter-from { opacity: 0; }
+
+/* `out-in` berarti halaman lama harus hilang DULU. Kalau ikut dianimasikan,
+   ada jeda kosong di tengah perpindahan -- dan jeda kosong itulah yang
+   dibaca sebagai "refresh". Jadi keluarannya instan, hanya masuknya
+   yang memudar. */
+.page-leave-active { display: none; }
+
+/* Modal & dialog: beda kebutuhan dari halaman — hilang dulu, baru masuk. */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* Gerak adalah tambahan, bukan informasi. Kalau ada yang memilih tidak
+   melihat gerak, hentikannya juga ikut hilang. */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active, .fade-enter-active, .fade-leave-active { transition: none; }
+}
 
 /* --- Print --- */
 @media print {

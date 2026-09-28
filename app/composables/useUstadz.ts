@@ -45,11 +45,20 @@ export function useUstadz() {
     await periksa()
   }
 
+  /**
+   * Logout.
+   *
+   * Sama seperti `useAuth.keluar`: WAJIB pindah ke `/` di akhir, kalau tidak
+   * orang tetap berdiri di halaman yang tadi. Urutannya juga sama: `signOut`
+   * dulu, baru `navigateTo`, supaya middleware tidak mengembalikannya lagi
+   * sebelum sesi benar-benar putus.
+   */
   async function keluar() {
     localStorage.removeItem(KUNCI)
     localStorage.removeItem('sorogan.acuan')
     ustadz.value = null
     await sb.auth.signOut()
+    await navigateTo('/')
   }
 
   return { ustadz, pengguna, idSesi, periksa, hubungkan, keluar }

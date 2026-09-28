@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Database } from '#shared/types/database'
-import { ambilKelompok, tambahKelompok, ubahKelompok, hapusKelompok, ambilSemuaSantri, tambahAnggotaKelompok, hapusAnggotaKelompok } from '~/utils/repo'
+import { ambilKelompok, tambahKelompok, ubahKelompok, hapusKelompok, ambilSemuaSantri, tambahAnggotaKelompok, hapusAnggotaKelompok, ambilKelas } from '~/utils/repo'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -8,7 +8,11 @@ const sb = useSupabaseClient<Database>()
 const toast = useToast()
 
 const daftar = ref<any[]>([])
-const semuaSantri = ref<{ id: number; nama: string; tingkat: string }[]>([])
+const semuaSantri = ref<{ id: number; nama: string; tingkat: string; kode: string }[]>([])
+// Kelas sorogan (BK1..BK3) untuk dipilih sebagai "kelompok ini melayani kelas apa".
+// Dibaca dari master data `kelas`, bukan ditulis manual di sini: kalau daftar
+// kelas berubah, daftar ini ikut berubah tanpa disentuh.
+const daftarKelas = ref<{ kode: string; nama: string }[]>([])
 const galat = ref('')
 const sibuk = ref(false)
 const formVisible = ref(false)
@@ -16,13 +20,14 @@ const editItem = ref<any>(null)
 const hapusTarget = ref<any>(null)
 const anggotaTarget = ref<any>(null)
 
-const form = ref({ nama: '', urutan: null as number | null })
+const form = ref({ nama: '', urutan: null as number | null, tingkat: '' as string | null })
 
 async function muat() {
   try {
-    const [k, s] = await Promise.all([ambilKelompok(sb), ambilSemuaSantri(sb)])
+    const [k, s, kl] = await Promise.all([ambilKelompok(sb), ambilSemuaSantri(sb), ambilKelas(sb)])
     daftar.value = k
     semuaSantri.value = s as any
+    daftarKelas.value = kl as any
   } catch (e) { galat.value = (e as Error).message }
 }
 
@@ -30,13 +35,13 @@ onMounted(muat)
 
 function bukaTambah() {
   editItem.value = null
-  form.value = { nama: '', urutan: daftar.value.length + 1 }
+  form.value = { nama: '', urutan: daftar.value.length + 1, tingkat: null }
   formVisible.value = true
 }
 
 function bukaEdit(item: any) {
   editItem.value = item
-  form.value = { nama: item.nama, urutan: item.urutan }
+  form.value = { nama: item.nama, urutan: item.urutan, tingkat: item.tingkat ?? null }
   formVisible.value = true
 }
 
@@ -44,10 +49,10 @@ async function simpan() {
   sibuk.value = true
   try {
     if (editItem.value) {
-      await ubahKelompok(sb, editItem.value.id, form.value.nama, form.value.urutan ?? undefined)
+      await ubahKelompok(sb, editItem.value.id, form.value.nama, form.value.urutan ?? undefined, form.value.tingkat)
       toast.success('Kelompok diperbarui.')
     } else {
-      await tambahKelompok(sb, form.value.nama, form.value.urutan ?? undefined)
+      await tambahKelompok(sb, form.value.nama, form.value.urutan ?? undefined, form.value.tingkat)
       toast.success('Kelompok ditambahkan.')
     }
     formVisible.value = false
@@ -76,6 +81,23 @@ const anggotaIds = computed(() => {
 })
 
 const santriBelumMasuk = computed(() => semuaSantri.value.filter(s => !anggotaIds.value.has(s.id)))
+
+/**
+ * Pencari. Dulu daftar ini `<select>` — dan native select tidak bisa diketik,
+ * jadi dari 103 nama harus digulir sambil membaca. Pola yang sama sudah dipakai
+ * di "Pilih orang" (kelola-user), jadi ini menyalin yang ada, bukan membuat
+ * widget baru.
+ *
+ * Cocok dengan kode juga: admin sering tahu kodenya (MS-0042) sebelum namanya.
+ */
+const cariAnggota = ref('')
+
+const kandidat = computed(() => {
+  const q = cariAnggota.value.trim().toLowerCase()
+  if (!q) return santriBelumMasuk.value
+  return santriBelumMasuk.value.filter(s =>
+    s.nama.toLowerCase().includes(q) || (s.kode ?? '').toLowerCase().includes(q))
+})
 
 async function tambahAnggota(santriId: number) {
   if (!anggotaTarget.value) return
@@ -111,7 +133,13 @@ async function hapusAnggota(santriId: number) {
       <div class="list-item">
         <span class="avatar">👨‍👩‍👧</span>
         <div class="list-item-content">
-          <div class="list-item-title">{{ k.nama }}</div>
+          <div class="list-item-title">
+            {{ k.nama }}
+            <!-- "Kelas mana" adalah identitas kelompok, bukan catatan: tanpa
+                 ini "Kelompok 3" tidak bisa dijawab "anak-anak BK apa?". -->
+            <span v-if="k.tingkat" class="chip">{{ k.tingkat }}</span>
+            <span v-else class="chip chip-kosong">Tanpa kelas</span>
+          </div>
           <div class="list-item-sub">{{ (k.kelompok_santri ?? []).length }} anggota</div>
         </div>
         <div class="list-item-actions">
@@ -138,11 +166,47 @@ async function hapusAnggota(santriId: number) {
             </div>
             <p v-else class="text-muted text-sm">Belum ada anggota.</p>
             <div v-if="santriBelumMasuk.length">
-              <label>Tambah Santri</label>
-              <select @change="(e) => { tambahAnggota(Number((e.target as HTMLSelectElement).value)); (e.target as HTMLSelectElement).value = '' }">
-                <option value="">-- Pilih --</option>
-                <option v-for="s in santriBelumMasuk" :key="s.id" :value="s.id">{{ s.nama }} ({{ s.tingkat }})</option>
-              </select>
+              <label for="cari-anggota">Tambah Santri</label>
+              <div class="search" style="margin-bottom: var(--space-2)">
+                <span class="search-icon">🔍</span>
+                <input
+                  id="cari-anggota"
+                  v-model="cariAnggota"
+                  type="search"
+                  autocomplete="off"
+                  placeholder="Ketik nama atau kode…"
+                >
+              </div>
+              <!-- Dua hal yang disengaja di sini:
+                   - 50 pertama, bukan 103. Tanpa pencarian, 50 baris sudah
+                     lebih dari yang bisa dibaca; dengan pencarian, sisanya
+                     bisa dijangkau lewat mengetik.
+                   - `border-color` transparan, bukan `border: none`. Aturan
+                     global `button` memberi border dan background, dan
+                     `.list-item:hover` memberi highlight -- yang hilang kalau
+                     background ditimpa jadi `none`. Pola sama di "Pilih orang". -->
+              <div v-if="kandidat.length" class="list" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-lg)">
+                <button
+                  v-for="s in kandidat.slice(0, 50)"
+                  :key="s.id"
+                  type="button"
+                  class="list-item"
+                  style="width: 100%; text-align: left; border-color: transparent"
+                  @click="tambahAnggota(s.id)"
+                >
+                  <div class="list-item-content">
+                    <div class="list-item-title">{{ s.nama }}</div>
+                    <div class="list-item-sub">{{ s.kode }} · {{ s.tingkat }}</div>
+                  </div>
+                  <span class="list-item-actions">+</span>
+                </button>
+              </div>
+              <p v-else class="redup" style="font-size: .85rem">
+                Tidak ada yang cocok.
+              </p>
+              <p v-if="kandidat.length > 50" class="redup" style="font-size: .75rem; margin-top: 4px">
+                Menampilkan 50 dari {{ kandidat.length }}. Ketik untuk mempersempit.
+              </p>
             </div>
             <button class="penuh mt-4" @click="anggotaTarget = null">Tutup</button>
           </div>
@@ -158,6 +222,14 @@ async function hapusAnggota(santriId: number) {
             <h2 style="margin: 0 0 var(--space-4)">{{ editItem ? 'Edit' : 'Tambah' }} Kelompok</h2>
             <label for="nama">Nama</label>
             <input id="nama" v-model="form.nama" placeholder="Kelompok A">
+            <label for="tingkat">Kelas yang dilayani</label>
+            <select id="tingkat" v-model="form.tingkat">
+              <option :value="null">— Belum ditentukan —</option>
+              <option v-for="k in daftarKelas" :key="k.kode" :value="k.kode">{{ k.kode }} — {{ k.nama }}</option>
+            </select>
+            <p class="redup" style="font-size: .75rem; margin: 4px 0 0">
+              Menentukan anak-anak kelas mana yang ditangani kelompok ini.
+            </p>
             <label for="urutan">Urutan</label>
             <input id="urutan" v-model.number="form.urutan" type="number">
             <div class="baris mt-4">

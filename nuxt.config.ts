@@ -18,6 +18,15 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#25543f' },
       ],
     },
+
+    // Tanpa transisi, pindah nav terasa seperti refresh: halaman lama hilang
+    // seketika, lalu yang baru muncul setelah `onMounted` selesai ambil data.
+    // Mata membaca jeda itu sebagai "halaman dimuat ulang", bukan "pindah
+    // halaman". `.page-*` di main.css yang mengatur ini.
+    //
+    // `appear` dimatikan supaya muat PERTAMA tidak ikut memudar -- kalau ikut,
+    // setiap Kali app dibuka terlihat seperti sedang memuat.
+    pageTransition: { name: 'page', mode: 'out-in', appear: false },
   },
 
   supabase: {

@@ -81,11 +81,55 @@ export function useAuth() {
     if (error) throw new Error(error.message)
   }
 
-  /** Logout. */
+  /**
+   * Logout.
+   *
+   * WAJIB pindah ke `/` di akhir. Tanpa itu, orang tetap berdiri di halaman
+   * yang tadi dengan data yang sudah terlanjur terambil di layar -- dan
+   * middleware hanya jalan saat navigasi, jadi halaman itu tidak akan
+   * membersihkan dirinya sendiri.
+   *
+   * Urutannya: `signOut` DULU, baru `navigateTo`. Kalau navigasi duluan,
+   * middleware masih membaca sesi yang belum putus dan mengembalikannya lagi
+   * ke halaman admin -- persis gejala "keluar tapi malah balik ke /admin".
+   */
   async function keluar(): Promise<void> {
-    role.value = null
     await sb.auth.signOut()
+    role.value = null
+    await navigateTo('/')
   }
 
-  return { pengguna, role, idSesi, deteksiRole, login, registerSantri, daftarUstadz, keluar }
+  /**
+   * Ganti password akun yang SEDANG login.
+   *
+   * Password lama diverifikasi lebih dulu, dan itu bukan formalitas: sesi
+   * login tersimpan di localStorage, jadi siapa pun yang memakai perangkat
+   * yang tidak terkunci bisa mengganti password tanpa jejak, lalu asatidz
+   * terkunci tanpa bisa minta bantuan. Meminta password lama mengubah
+   * "sesi ini terbuka" menjadi "orang yang benar-benar tahu".
+   *
+   * Verifikasi lewat `signInWithPassword`, bukan `reauthenticate` (yang untuk
+   * MFA). Password tidak pernah masuk ke kode kita: yang dipakai hanya status
+   * berhasil atau tidaknya.
+   *
+   * Tidak memakai service_role, jadi ini tidak bisa dipakai untuk mengubah
+   * password orang lain -- itu terpisah, dan tidak ada di sini.
+   */
+  async function gantiPassword(lama: string, baru: string): Promise<void> {
+    const email = pengguna.value?.email
+    if (!email) throw new Error('Email akun tidak terbaca. Masuk ulang, lalu coba lagi.')
+
+    const cek = await sb.auth.signInWithPassword({ email, password: lama })
+    if (cek.error) {
+      // Pesan asli dari server sengaja tidak ditampilkan: "Invalid login
+      // credentials" membingungkan yang salah ketik, dan tidak acrescenta
+      // informasi apa pun.
+      throw new Error('Password lama salah.')
+    }
+
+    const { error } = await sb.auth.updateUser({ password: baru })
+    if (error) throw new Error(error.message)
+  }
+
+  return { pengguna, role, idSesi, deteksiRole, login, registerSantri, daftarUstadz, keluar, gantiPassword }
 }

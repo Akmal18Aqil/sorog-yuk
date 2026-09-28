@@ -20,6 +20,7 @@ const NAV: Record<Role, ItemNav[]> = {
     { label: 'Beranda', to: '/admin', utama: true },
     { label: 'User', to: '/admin/kelola-user', utama: true },
     { label: 'Kelas', to: '/admin/kelas', utama: true },
+    { label: 'Kelas Kuliah', to: '/admin/kelas-kuliah', utama: false },
     { label: 'Kelompok', to: '/admin/kelompok', utama: true },
     { label: 'Kitab', to: '/admin/kitab', utama: true },
     { label: 'Soal', to: '/admin/soal', utama: false },
@@ -42,6 +43,22 @@ export function navUntuk(role: Role | null): ItemNav[] {
 /** Item navigasi yang muat di bottom nav HP. */
 export function navUtama(role: Role | null): ItemNav[] {
   return navUntuk(role).filter(i => i.utama)
+}
+
+/**
+ * Apakah `path` hanya boleh dibuka superadmin?
+ *
+ * Di sini, bukan di middleware, karena middleware tidak bisa diuji tanpa
+ * menjalankan Nuxt (lihat `test/nav.test.ts`).
+ *
+ * `/super-adminn` TIDAK berawalan `/admin` -- itu justru sebabnya tidak muncul
+ * di navigasi. Tapi konsekuensinya, dia akan jatuh ke cabang "ustadz" di
+ * middleware dan superadmin yang membukanya justru diarahkan balik ke
+ * `/admin`: halaman jadi mustahil dibuka. Karena itu disebut eksplisit di
+ * sini, bukan mengandalkan awalan.
+ */
+export function hanyaSuperadmin(path: string): boolean {
+  return path.startsWith('/admin') || path.startsWith('/super-adminn')
 }
 
 /**

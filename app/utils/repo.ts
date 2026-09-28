@@ -464,7 +464,49 @@ export async function hapusKelas(sb: Klien, id: number): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-// ———————————————————————— CRUD: Kelompok (admin) ————————————————————————
+// ——————————————————————————————— Kelola superadmin ———————————————————————————————
+
+export interface AdminSuper {
+  id: number
+  nama: string
+  role: string
+  aktif: boolean
+  /** Tanpa akun auth, orang ini tidak bisa masuk sama sekali. */
+  punya_akun: boolean
+  /**
+   * Dihitung SERVER (`daftar_superadmin`). UI tidak boleh menentukannya
+   * sendiri: kalau penentuannya di klien, satu request yang dimanipulasi
+   * sudah cukup untuk membuat tombol berbahaya muncul.
+   */
+  is_saya: boolean
+}
+
+export async function ambilDaftarSuperadmin(sb: Klien): Promise<AdminSuper[]> {
+  const { data, error } = await sb.rpc('daftar_superadmin')
+  if (error) throw new Error(error.message)
+  return (data ?? []) as unknown as AdminSuper[]
+}
+
+/**
+ * Naikkan / turunkan satu orang dari superadmin, atau aktif/nonaktifkan.
+ *
+ * Satu panggilan untuk peran DAN status sekaligus. Memisahkannya berarti UI
+ * menentukan urutan dua request, dan di antara keduanya ada keadaan setengah
+ * yang tidak disengaja -- "turun tapi masih aktif" adalah kondisi yang tidak
+ * pernah boleh terlihat.
+ *
+ * Pagar "superadmin aktif terakhir" ditegakkan server (db/049), bukan di UI.
+ * UI hanya menampilkan tombol; kalau server menolak, pesannya sudah jelas.
+ */
+export async function aturSuperadmin(
+  sb: Klien, p: { id: number; peran: 'superadmin' | 'ustadz'; aktif: boolean },
+): Promise<void> {
+  const { error } = await sb.rpc('atur_superadmin', {
+    p_id: p.id, p_peran: p.peran, p_aktif: p.aktif,
+  })
+  if (error) throw new Error(error.message)
+}
+// —————————————————————————————————— CRUD: Kelompok (admin) ——————————————————————————————————
 
 export async function ambilKelompok(sb: Klien) {
   const { data, error } = await sb.from('kelompok').select('*, kelompok_santri(santri_id)').order('urutan')
@@ -472,20 +514,50 @@ export async function ambilKelompok(sb: Klien) {
   return data ?? []
 }
 
-export async function tambahKelompok(sb: Klien, nama: string, urutan?: number): Promise<number> {
-  const { data, error } = await sb.rpc('tambah_kelompok', { p_nama: nama, ...(urutan != null ? { p_urutan: urutan } : {}) })
+export async function tambahKelompok(sb: Klien, nama: string, urutan?: number, tingkat?: string | null): Promise<number> {
+  const { data, error } = await sb.rpc('tambah_kelompok', { p_nama: nama, p_urutan: urutan ?? null, p_tingkat: tingkat ?? null })
   if (error) throw new Error(error.message)
   return data as number
 }
 
-export async function ubahKelompok(sb: Klien, id: number, nama: string, urutan?: number): Promise<void> {
-  const { error } = await sb.rpc('ubah_kelompok', { p_id: id, p_nama: nama, ...(urutan != null ? { p_urutan: urutan } : {}) })
+export async function ubahKelompok(sb: Klien, id: number, nama: string, urutan?: number, tingkat?: string | null): Promise<void> {
+  const { error } = await sb.rpc('ubah_kelompok', { p_id: id, p_nama: nama, p_urutan: urutan ?? null, p_tingkat: tingkat ?? null })
   if (error) throw new Error(error.message)
 }
 
 export async function hapusKelompok(sb: Klien, id: number): Promise<void> {
   const { error } = await sb.rpc('hapus_kelompok', { p_id: id })
   if (error) throw new Error(error.message)
+}
+
+// ———————————————————————— Kelas kuliah & naik semester ————————————————————————
+
+/** Hasil `naik_semester`: berapa yang dipindah, berapa yang sengaja dilewati. */
+export interface HasilNaikSemester {
+  dipindah: number
+  /** Nonaktif (lulus/keluar) yang TIDAK dinaikkan. Dilaporkan, bukan disembunyikan. */
+  dilewati: number
+}
+
+/**
+ * Naikkan seluruh Santri AKTIF dari `dari` ke `ke`.
+ *
+ * Satu operasi, bukan satu baris per Santri: bila gagal di tengah, kelas
+ * bisa tertinggal setengah naik dan tidak ada yang mengetahuinya. Validasi
+ * rentang 1..12 dan "tujuan harus lebih besar" ditegakkan server
+ * (db/048) — bukan di sini, karena UI bisa dilewati.
+ */
+export async function naikSemester(sb: Klien, dari: number, ke: number): Promise<HasilNaikSemester> {
+  const { data, error } = await sb.rpc('naik_semester', { p_dari: dari, p_ke: ke })
+  if (error) throw new Error(error.message)
+  // `Json` belum tentu objek: PostgREST menyatakan nilai balik RPC json sebagai
+  // `Json`, jadi bentuknya baru pasti setelah diperiksa. Bentuk salah akan
+  // membuat UI menampilkan "undefined.undefined" -- lebih baik error jujur.
+  const r = data as unknown as HasilNaikSemester
+  if (typeof r?.dipindah !== 'number' || typeof r?.dilewati !== 'number') {
+    throw new Error('Balasan naik semester tidak sesuai. Jalankan ulang migrasi db/.')
+  }
+  return r
 }
 
 // ———————————————————————— CRUD: Kelompok-Santri ————————————————————————

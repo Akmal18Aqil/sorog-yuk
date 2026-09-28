@@ -49,10 +49,10 @@ export type Database = {
         Relationships: []
       }
       kelompok: {
-        Row: { id: number; jenis: JenisKelas; nama: string; periode: string | null; urutan: number | null }
-        Insert: { id?: never; jenis?: JenisKelas; nama: string; periode?: string | null; urutan?: number | null }
-        Update: { id?: never; jenis?: JenisKelas; nama?: string; periode?: string | null; urutan?: number | null }
-        Relationships: []
+        Row: { id: number; jenis: JenisKelas; nama: string; periode: string | null; tingkat: string | null; urutan: number | null }
+        Insert: { id?: never; jenis?: JenisKelas; nama: string; periode?: string | null; tingkat?: string | null; urutan?: number | null }
+        Update: { id?: never; jenis?: JenisKelas; nama?: string; periode?: string | null; tingkat?: string | null; urutan?: number | null }
+        Relationships: [{ foreignKeyName: 'kelompok_tingkat_fk'; columns: ['tingkat']; isOneToOne: false; referencedRelation: 'kelas'; referencedColumns: ['kode'] }]
       }
       kelompok_santri: {
         Row: { dari: string | null; id: number; kelompok_id: number; sampai: string | null; santri_id: number }
@@ -174,10 +174,12 @@ export type Database = {
       ambil_semua_santri: { Args: never; Returns: Json }
       ambil_semua_ustadz: { Args: never; Returns: Json }
       ambil_statistik: { Args: never; Returns: Json }
+      atur_superadmin: { Args: { p_aktif: boolean; p_id: number; p_peran: string }; Returns: undefined }
       bobot: { Args: { v: string }; Returns: number }
       cari_mahasantri: { Args: { p_cari?: string | null; p_kode?: number | null }; Returns: Json }
       lepas_akun: { Args: { p_id: number; p_jenis: string }; Returns: undefined }
       daftar_santri: { Args: { p_nama: string; p_tingkat?: string }; Returns: number }
+      daftar_superadmin: { Args: never; Returns: Json }
       daftar_ustadz: { Args: { p_kode: string }; Returns: number }
       hapus_anggota_kelompok: { Args: { p_kelompok_id: number; p_santri_id: number }; Returns: undefined }
       hapus_kelas: { Args: { p_id: number }; Returns: undefined }
@@ -187,6 +189,7 @@ export type Database = {
       pindah_kelas: { Args: { p_kelompok_id: number; p_santri_id: number }; Returns: undefined }
       is_ustadz: { Args: never; Returns: boolean }
       my_ustadz_id: { Args: never; Returns: number }
+      naik_semester: { Args: { p_dari: number; p_ke: number }; Returns: Json }
       putuskan_kenaikan: { Args: { p_catatan?: string; p_santri_id: number; p_setuju: boolean }; Returns: number }
       set_aktif_santri: { Args: { p_aktif: boolean; p_id: number }; Returns: undefined }
       set_aktif_ustadz: { Args: { p_aktif: boolean; p_id: number }; Returns: undefined }
@@ -194,11 +197,11 @@ export type Database = {
       simpan_penilaian: { Args: { p_ibarat_id?: number; p_jawaban: Json; p_kelompok_id?: number; p_lafad?: string; p_mode: string; p_santri_id: number; p_soal_id?: number; p_tanggal: string; p_urutan: number }; Returns: number }
       tambah_anggota_kelompok: { Args: { p_kelompok_id: number; p_santri_id: number }; Returns: undefined }
       tambah_kelas: { Args: { p_ambang_offline?: number; p_ambang_online?: number; p_kode: string; p_nama: string; p_urutan: number }; Returns: number }
-      tambah_kelompok: { Args: { p_nama: string; p_urutan?: number }; Returns: number }
+      tambah_kelompok: { Args: { p_nama: string; p_tingkat?: string | null; p_urutan?: number | null }; Returns: number }
       tambah_santri: { Args: { p_nama: string; p_tingkat?: string }; Returns: number }
       tambah_ustadz: { Args: { p_nama: string }; Returns: number }
       ubah_kelas: { Args: { p_ambang_offline: number; p_ambang_online: number; p_id: number; p_kode: string; p_nama: string; p_urutan: number }; Returns: undefined }
-      ubah_kelompok: { Args: { p_id: number; p_nama: string; p_urutan?: number }; Returns: undefined }
+      ubah_kelompok: { Args: { p_id: number; p_nama: string; p_tingkat?: string | null; p_urutan?: number | null }; Returns: undefined }
       ubah_santri: { Args: { p_id: number; p_nama: string; p_tingkat: string }; Returns: undefined }
       ubah_ustadz: { Args: { p_id: number; p_nama: string }; Returns: undefined }
     }

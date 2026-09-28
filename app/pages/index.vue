@@ -78,6 +78,19 @@ async function pilih(u: Ustadz) {
   finally { sibuk.value = false }
 }
 
+/**
+ * Keluar dari layar "pilih nama".
+ *
+ * `keluar()` saja tidak cukup: halaman ini sudah di `/`, jadi `navigateTo('/')`
+ * di dalamnya tidak terjadi apa-apa dan daftar nama masih tampil di layar --
+ * persis keadaan yang seharusnya ditinggalkan oleh "Keluar".
+ */
+async function keluarDariPilih() {
+  await keluar()
+  tahap.value = 'masuk'
+  pilihan.value = []
+}
+
 async function daftarKode() {
   if (!kode.value.trim()) {
     galat.value = 'Kode undangan harus diisi.'
@@ -157,7 +170,7 @@ async function daftarKode() {
       <p v-if="galat" class="galat">{{ galat }}</p>
 
       <button class="penuh mt-3" @click="tahap = 'kode'">Punya kode undangan?</button>
-      <button class="penuh mt-2" @click="keluar">Keluar</button>
+      <button class="penuh mt-2" @click="keluarDariPilih">Keluar</button>
     </section>
 
     <!-- Daftar Pakai Kode -->

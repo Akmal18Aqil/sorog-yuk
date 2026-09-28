@@ -18,6 +18,7 @@ onMounted(async () => {
 const menu = [
   { icon: '👥', label: 'Kelola User', desc: 'Ustadz & Santri', to: '/admin/kelola-user' },
   { icon: '📚', label: 'Kelas', desc: 'Tingkatan & ambang', to: '/admin/kelas' },
+  { icon: '🎓', label: 'Kelas Kuliah', desc: 'Semester & naik semester', to: '/admin/kelas-kuliah' },
   { icon: '👨‍👩‍👧', label: 'Kelompok', desc: 'Kelompok & anggota', to: '/admin/kelompok' },
   { icon: '📖', label: 'Kitab', desc: 'Materi & ibarat', to: '/admin/kitab' },
   { icon: '❓', label: 'Soal', desc: 'Bank soal', to: '/admin/soal' },
