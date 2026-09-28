@@ -169,11 +169,13 @@ async function hapusAnggota(santriId: number) {
 
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="page-head">
       <NuxtLink to="/admin" class="back-btn">← Kembali</NuxtLink>
-      <button class="utama" style="width: auto; padding: 0 var(--space-4)" @click="bukaTambah">+ Tambah</button>
+      <div class="toolbar" role="group" aria-label="Tambah kelompok">
+        <button class="utama btn-tambah" @click="bukaTambah">+ Tambah</button>
+      </div>
     </div>
-    <h1 style="margin-bottom: var(--space-4)">Kelompok</h1>
+    <h1 class="page-title">Kelompok</h1>
     <p v-if="galat" class="galat">{{ galat }}</p>
 
     <!-- Daftar per kelas. Kelompok berkumpul dengan kelasnya sendiri (BK1
@@ -187,7 +189,7 @@ async function hapusAnggota(santriId: number) {
         <Badge :label="`${g.isi.length} kelompok`" />
       </div>
 
-      <div v-for="k in g.isi" :key="k.id" class="kartu" style="padding: 0; overflow: hidden">
+      <div v-for="k in g.isi" :key="k.id" class="kartu kartu-rapat">
       <div class="list-item">
         <span class="avatar">👨‍👩‍👧</span>
         <div class="list-item-content">

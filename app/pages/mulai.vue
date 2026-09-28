@@ -181,21 +181,23 @@ function jalan(santri: Santri) {
 <template>
   <div>
     <!-- Header -->
-    <div class="section-header">
+    <div class="page-head">
       <div>
-        <h1 style="margin: 0">Sorogan</h1>
-        <p class="subtitle" style="margin: 2px 0 0">{{ ustadz?.nama }}</p>
+        <h1 class="page-title">Sorogan</h1>
+        <p class="text-muted text-sm page-sub">{{ ustadz?.nama }}</p>
       </div>
       <!-- Desktop punya "Keluar" di sidebar; di HP sidebar tidak tampil. -->
-      <button class="kecil hanya-hp" @click="keluar">Keluar</button>
+      <div class="toolbar hanya-hp">
+        <button class="kecil" @click="keluar">Keluar</button>
+      </div>
     </div>
 
     <p v-if="galat" class="galat">{{ galat }}</p>
 
     <!-- Resume Session -->
-    <div v-if="adaKemajuan" class="kartu" style="border-left: 3px solid var(--warning); margin-bottom: var(--space-4)">
-      <p style="margin: 0; font-weight: 600; font-size: var(--text-sm)">Ada sesi yang belum selesai</p>
-      <p class="text-muted text-xs" style="margin: 4px 0 var(--space-3)">Melanjutkan menjaga penomoran soal tetap benar.</p>
+    <div v-if="adaKemajuan" class="kartu kartu-peringatan">
+      <p class="tegas">Ada sesi yang belum selesai</p>
+      <p class="text-muted text-xs mb-3">Melanjutkan menjaga penomoran soal tetap benar.</p>
       <button class="utama" @click="navigateTo('/nilai')">Lanjutkan</button>
     </div>
 
@@ -204,7 +206,7 @@ function jalan(santri: Santri) {
          Urutannya KELAS dulu, baru kelompok: tiap kelas punya kelompok 1, 2, 3
          sendiri, jadi daftar kelompok yang tidak disaring kelasnya akan
          memuat beberapa "Kelompok 1" yang berbeda tanpa cara membedakannya. -->
-    <div class="kartu pilih">
+    <div class="kartu kartu-filter">
       <div class="pilih-baris">
         <div class="pilih-grup">
           <span class="pilih-label" id="lbl-kelas">Kelas</span>
@@ -224,7 +226,7 @@ function jalan(santri: Santri) {
           </div>
         </div>
 
-        <div class="pilih-grup pilih-grup-luas">
+        <div class="pilih-grup">
           <span class="pilih-label" id="lbl-kelompok">Kelompok</span>
           <div v-if="!acuan" class="text-muted text-sm">Memuat...</div>
           <div v-else-if="!kelompokSatuKelas.length" class="text-muted text-sm">
@@ -260,14 +262,14 @@ function jalan(santri: Santri) {
         </div>
       </div>
 
-      <p v-if="kurangStok.length" class="galat" style="margin: var(--space-3) 0 0">
+      <p v-if="kurangStok.length" class="galat mt-3">
         Bank soal kurang untuk tipe: {{ kurangStok.join(', ') }}.
       </p>
 
       <!-- Kelompok yang kelasnya belum diatur tidak bisa dinilai -- format
            ujiannya ditentukan kelas. Disebutkan supaya anggotanya tidak
            seolah-olah hilang, bukan dibiarkan dicari sendiri. -->
-      <p v-if="tanpaKelas.length" class="galat" style="margin: var(--space-2) 0 0">
+      <p v-if="tanpaKelas.length" class="galat mt-2">
         {{ tanpaKelas.map(k => k.nama).join(', ') }} belum punya kelas, jadi tidak muncul
         di kelas mana pun. Atur di Kelola Kelompok.
       </p>
@@ -287,47 +289,49 @@ function jalan(santri: Santri) {
       </div>
 
       <div v-if="acuan && !anggota.length" class="text-muted text-sm">Kelompok ini belum berisi santri.</div>
-      <div v-else-if="sisaAktif === 0" class="kartu-flat text-sm text-success" style="margin-bottom: var(--space-3)">
+      <div v-else-if="sisaAktif === 0" class="kartu-flat text-sm text-success">
         Semua santri di kelompok ini sudah dinilai hari ini.
       </div>
 
       <!-- Baris santri: ketuk nama = nilai; ketuk status = absen.
            Absen terpisah dari tombol nilai supaya anak izin/sakit/alpa bisa
            dicatat tanpa membuka sesi penilaian. -->
-      <div v-for="s in anggota" :key="s.id" class="kartu" style="padding: 0; overflow: hidden">
-        <div class="list-item" :style="sudah(s) ? 'opacity: 0.6' : ''">
-          <button type="button" class="list-item" style="flex: 1; border: none; background: none; padding: 0; text-align: left" @click="jalan(s)">
-            <Avatar :name="s.nama" />
-            <div class="list-item-content">
-              <div class="list-item-title">{{ s.nama }}</div>
-              <div class="list-item-sub">
-                <Badge v-if="sudah(s)" variant="success" label="Selesai" />
-                <span v-else class="text-muted text-xs">{{ jmlSoal }} soal</span>
-                <span v-if="s.semester != null" class="text-muted text-xs"> · Smt {{ s.semester }}</span>
-                <!-- Kendala hari ini ikut terlihat di daftar: musrif tahu mana
-                     yang kemarin bermasalah tanpa membuka satu per satu. -->
-                <span v-if="kendalaAnak(s)" class="text-muted text-xs" style="display: block">⚠ {{ kendalaAnak(s) }}</span>
-              </div>
-            </div>
-          </button>
-          <div style="display: flex; gap: 4px; padding-right: 8px" role="group" :aria-label="`Absen ${s.nama}`">
-            <button
-              v-for="st in STATUS_HADIR" :key="st" type="button"
-              class="absen" :class="{ aktif: statusAnak(s) === st, [st]: true }"
-              :aria-pressed="statusAnak(s) === st"
-              :title="LABEL_STATUS[st]"
-              @click="tandaiHadir(s, st)"
-            >{{ LABEL_STATUS[st][0] }}</button>
-            <!-- Kendala: satu ketuk untuk catat teks bebas. Aktif berisi bila
-                 hari ini ada kendalanya — tanpa ini kendala hanya bisa dibaca
-                 (dari server) tapi tidak pernah ditulis dari layar ini. -->
-            <button
-              type="button"
-              class="absen" :class="{ aktif: !!kendalaAnak(s) }"
-              :title="kendalaAnak(s) ? `Kendala: ${kendalaAnak(s)}` : 'Catat kendala'"
-              @click="simpanKendala(s)"
-            >⚠</button>
-          </div>
+      <div
+        v-for="s in anggota" :key="s.id"
+        class="kartu kartu-santri" :class="{ selesai: sudah(s) }"
+      >
+        <button type="button" class="santri-utama" @click="jalan(s)">
+          <Avatar :name="s.nama" />
+          <span class="list-item-content">
+            <span class="list-item-title">{{ s.nama }}</span>
+            <span class="list-item-sub">
+              <Badge v-if="sudah(s)" variant="success" label="Selesai" />
+              <span v-else class="text-muted text-xs">{{ jmlSoal }} soal</span>
+              <span v-if="s.semester != null" class="text-muted text-xs"> · Smt {{ s.semester }}</span>
+              <!-- Kendala hari ini ikut terlihat di daftar: musrif tahu mana
+                   yang kemarin bermasalah tanpa membuka satu per satu. -->
+              <span v-if="kendalaAnak(s)" class="text-muted text-xs kendala-anak">⚠ {{ kendalaAnak(s) }}</span>
+            </span>
+          </span>
+        </button>
+
+        <div class="santri-absen" role="group" :aria-label="`Absen ${s.nama}`">
+          <button
+            v-for="st in STATUS_HADIR" :key="st" type="button"
+            class="absen" :class="{ aktif: statusAnak(s) === st, [st]: true }"
+            :aria-pressed="statusAnak(s) === st"
+            :title="LABEL_STATUS[st]"
+            @click="tandaiHadir(s, st)"
+          >{{ LABEL_STATUS[st][0] }}</button>
+          <!-- Kendala: satu ketuk untuk catat teks bebas. Aktif berisi bila
+               hari ini ada kendalanya — tanpa ini kendala hanya bisa dibaca
+               (dari server) tapi tidak pernah ditulis dari layar ini. -->
+          <button
+            type="button"
+            class="absen" :class="{ aktif: !!kendalaAnak(s) }"
+            :title="kendalaAnak(s) ? `Kendala: ${kendalaAnak(s)}` : 'Catat kendala'"
+            @click="simpanKendala(s)"
+          >⚠</button>
         </div>
       </div>
     </div>
@@ -335,54 +339,41 @@ function jalan(santri: Santri) {
 </template>
 
 <style scoped>
-/* Pemilih kelompok/tingkat/keperluan: satu kartu, bukan tiga section.
-   Di desktop bertumpuk horizontal supaya daftar Santri langsung terlihat di
-   bawahnya; di HP tetap satu kolom karena labelnya yang penting, bukan
-   hemat tinggi. */
-.pilih-baris {
+/* Baris santri: satu kartu per anak, isinya tombol nilai + deret tombol absen.
+   Dipisah dari `.list-item` global karena baris ini punya grup aksi di kanan
+   yang harus turun ke baris sendiri di HP, dan karena `.list-item` di dalam
+   `.list-item` (susunan lama) berarti padding bertumpuk yang harus dilawan
+   dengan style inline di tiga tempat. */
+.kartu-santri {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
-  align-items: start;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
 }
-@media (min-width: 900px) {
-  /* Kelompok dapat kolom terlebar: itulah satu-satunya daftar yang boleh
-     panjang (satu tab per rombel di kelas itu). Kelas dapat minmax dengan
-     minimum kontennya: persis di ambang 900px dua tab kelas butuh ~210px
-     tapi kolomnya cuma dapat ~197px, jadi tanpa ini ada serpihan 14px yang
-     bisa digeser. Keperluan muat dengan 1fr biasa. */
-  .pilih-baris { grid-template-columns: minmax(max-content, 1fr) 2fr 1fr; }
-}
+/* Sudah dinilai hari ini: diredupkan, bukan disembunyikan -- musrif masih
+   perlu melihat siapa saja yang sudah lewat. */
+.kartu-santri.selesai { opacity: 0.62; }
 
-.pilih-grup { min-width: 0; }
-.pilih-label {
-  display: block;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin-bottom: var(--space-2);
+.santri-utama {
+  display: flex; align-items: center; gap: var(--space-3);
+  min-width: 0; min-height: 44px;
+  padding: var(--space-1) 0;
+  border: none; background: none; text-align: left;
+  border-radius: var(--radius-sm);
 }
-/* `.tabs` bawa margin-bottom untuk berdiri sendiri sebagai section; di dalam
-   kartu itu hanya jadi jarak aneh ke tepi kartu. */
-.pilih-grup :deep(.tabs) { margin-bottom: 0; }
+.santri-utama:hover { background: var(--bg); }
 
-/* Sisa pekerjaan per kelompok, di dalam label tab. `.tab` ada di CSS global,
-   jadi di style scoped harus lewat :deep atau selektor ini tidak akan
-   menyentuh elemen itu. */
-.pilih-grup :deep(.tab-sisa) {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 0 6px;
-  border-radius: var(--radius-full);
-  background: var(--primary-light);
-  color: var(--primary);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  line-height: 1.5;
+.kendala-anak { display: block; }
+
+.santri-absen { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* HP: grup absen pindah ke baris kedua, digeser selebar avatar supaya masih
+   terbaca sebagai satu baris data dengan nama di atasnya. */
+@media (max-width: 560px) {
+  .kartu-santri { grid-template-columns: 1fr; }
+  .santri-absen { justify-content: flex-start; padding-left: calc(40px + var(--space-3)); }
 }
-.pilih-grup :deep(.tab.active .tab-sisa) { background: var(--primary); color: var(--teks-aksen); }
 
 /* Tombol absen 1 huruf (H/I/S/A), min 44px sesuai R13. Yang aktif berisi,
    yang tidak hanya bergaris — supaya daftar tetap terbaca kertas. */

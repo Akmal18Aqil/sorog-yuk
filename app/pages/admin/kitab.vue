@@ -67,14 +67,16 @@ async function konfirmasiHapus() {
 
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="page-head">
       <NuxtLink to="/admin" class="back-btn">← Kembali</NuxtLink>
-      <button class="utama" style="width: auto; padding: 0 var(--space-4)" @click="bukaTambah">+ Tambah</button>
+      <div class="toolbar" role="group" aria-label="Tambah kitab">
+        <button class="utama btn-tambah" @click="bukaTambah">+ Tambah</button>
+      </div>
     </div>
-    <h1 style="margin-bottom: var(--space-4)">Kitab</h1>
+    <h1 class="page-title">Kitab</h1>
     <p v-if="galat" class="galat">{{ galat }}</p>
 
-    <div v-for="k in daftar" :key="k.id" class="kartu" style="padding: 0; overflow: hidden">
+    <div v-for="k in daftar" :key="k.id" class="kartu kartu-rapat">
       <div class="list-item">
         <span class="avatar">📖</span>
         <div class="list-item-content">

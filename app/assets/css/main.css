@@ -194,6 +194,14 @@ h2 { font-size: var(--text-lg); font-weight: 600; margin: var(--space-5) 0 var(-
   border: 1px solid var(--border);
   margin-bottom: var(--space-3);
 }
+/* Kartu yang isinya baris `.list-item`. Baris sudah punya padding sendiri,
+   jadi padding kartu harus nol -- kalau tidak, tiap baris dapat indentasi
+   ganda dan garis pemisahnya tidak menyentuh tepi kartu. */
+.kartu-rapat { padding: 0; overflow: hidden; }
+/* Kartu bertanda: satu garis tebal di kiri sebagai penanda status
+   (sesi belum selesai, anak siap naik, dst). */
+.kartu-peringatan { border-left: 3px solid var(--warning); }
+.kartu-sukses { border-left: 3px solid var(--success); }
 
 /* --- Flex/Grid Utilities --- */
 .baris { display: flex; gap: var(--space-2); flex-wrap: wrap; }
@@ -237,19 +245,22 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 }
 .utama:hover { background: var(--primary-hover); }
 .penuh { width: 100%; }
+/* Tombol kecil tetap ringkas, tapi tidak lagi lebih pendek dari 40px: di HP
+   "Keluar"/"Edit"/"Cetak" itu sasaran ketuk, dan 30px (min-height 0 + padding
+   6px) membuatnya sering salah pencet. */
 .kecil {
-  min-height: 0; padding: 6px 12px; font-size: var(--text-sm);
+  min-height: 40px; padding: 6px 12px; font-size: var(--text-sm);
   border-radius: var(--radius-sm);
 }
 .back-btn {
-  min-height: 0; padding: 8px 14px; font-size: var(--text-sm);
+  min-height: 40px; padding: 8px 14px; font-size: var(--text-sm);
   border-radius: var(--radius-sm); text-decoration: none;
   display: inline-flex; align-items: center; gap: var(--space-1);
   color: var(--text); background: var(--bg); border: 1px solid var(--border);
 }
 .back-btn:hover { background: var(--primary-light); }
 .ikon {
-  min-height: 0; padding: 8px; border-radius: var(--radius-full);
+  min-width: 40px; min-height: 40px; padding: 8px; border-radius: var(--radius-full);
   display: inline-flex; align-items: center; justify-content: center;
 }
 .pilih[aria-pressed='true'] {
@@ -332,6 +343,11 @@ textarea { resize: vertical; min-height: 80px; }
   border-color: transparent;
 }
 .list-item:hover { background: var(--bg); }
+/* Baris berdempet dalam satu kartu dipisah garis rambut. Dulu tiap halaman
+   menulisnya sendiri lewat style inline (dan lupa di separuh tempat), jadi
+   satu daftar bisa bergaris sementara yang lain tidak. Aturan ini yang
+   memutuskan, seragam untuk semua role. */
+.list-item + .list-item { border-top: 1px solid var(--border); }
 .list-item-content { flex: 1; min-width: 0; }
 .list-item-title { font-weight: 600; font-size: var(--text-base); color: var(--text); text-decoration: none; }
 .list-item-sub { font-size: var(--text-sm); color: var(--muted); margin: 2px 0 0; }
@@ -397,6 +413,40 @@ textarea { resize: vertical; min-height: 80px; }
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+/* Judul modal: `h2` global bawa margin atas yang besar -- di modal itu
+   celah aneh antara tepi sheet dan judul. Tiap halaman menulis ulangnya
+   lewat style inline; satu aturan ini menghapus semuanya. */
+.modal h2 { margin: 0 0 var(--space-4); }
+
+/* --- Fondasi kerapian halaman (pola contoh clean) ---
+   Satu pola header + toolbar untuk SEMUA halaman, pengganti belasan
+   `style="display:flex;justify-content:space-between"` inline yang
+   margin/gap-nya beda tiap halaman. Pola: baris alat (kembali + aksi),
+   judul, subjudul — sama seperti layar Laporan yang sudah rapi. */
+.page-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.page-title { margin: 0; }
+.page-sub { margin: var(--space-1) 0 var(--space-4); }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* Tombol aksi utama di toolbar: hijau penuh supaya setara tombol contoh. */
+.toolbar-utama { background: var(--primary); border-color: var(--primary); color: var(--teks-aksen); font-weight: 600; }
+/* Tombol "+ Tambah" halaman admin: tinggi penuh 48px (mudah diketuk) tapi
+   selebar isinya, bukan selebar layar seperti `.utama` biasa. */
+.btn-tambah { width: auto; padding-left: var(--space-4); padding-right: var(--space-4); }
+/* Di HP toolbar turun full-width di bawah tombol kembali, tombolnya dibagi
+   rata — 3 tombol ekspor Laporan jadi 3 kolom sama lebar yang rapi, bukan
+   menumpuk tak sejajar. */
+@media (max-width: 560px) {
+  .page-head .toolbar { width: 100%; }
+  .page-head .toolbar > * { flex: 1; text-align: center; justify-content: center; }
+}
+/* Toolbar dokumen (Salin WA/Excel/Cetak): segaris kanan di atas kartu filter,
+   bukan menempel di baris Kembali. Di HP jadi 3 kolom sama lebar penuh. */
+.toolbar-dokumen { justify-content: flex-end; margin-bottom: var(--space-4); }
+.toolbar-dokumen > * { min-height: 44px; padding-left: var(--space-4); padding-right: var(--space-4); }
+@media (max-width: 560px) {
+  .toolbar-dokumen { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .toolbar-dokumen > * { justify-content: center; }
+}
 
 /* --- Bottom Navigation (shell A, < 900px) ---
    Grid 1fr per item, bukan space-around: space-around menyisakan celah
@@ -418,14 +468,19 @@ textarea { resize: vertical; min-height: 80px; }
   .bottom-nav { display: none; }
 }
 .bottom-nav-item {
-  display: flex; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
   min-height: 64px;
   padding: var(--space-1) var(--space-1);
   color: var(--muted);
   font-size: var(--text-xs);
+  line-height: 1.2;
   text-decoration: none;
   transition: color 0.15s ease;
 }
+.bottom-nav-label { white-space: nowrap; }
+/* Ikon ikut warna label: aktif hijau, nonaktif redup. */
+.bottom-nav-item svg { display: block; }
 .bottom-nav-item:hover { color: var(--text); }
 .bottom-nav-item:active { background: var(--primary-light); }
 .bottom-nav-item[aria-current='page'] {
@@ -433,6 +488,42 @@ textarea { resize: vertical; min-height: 80px; }
   font-weight: 600;
   box-shadow: inset 0 -2px 0 var(--primary);
 }
+
+/* --- Kartu filter (pemilih: Kelas, Kelompok, Semester, BK, Keperluan) ---
+   Satu pola untuk semua halaman. Sebelumnya definisinya menumpang di
+   `mulai.vue` (scoped) sehingga halaman lain yang memakai `.pilih-label`
+   tidak mendapat gayanya sama sekali -- label filter di Laporan tampil
+   sebagai teks biasa sementara di Sorogan tampil huruf kecil kapital.
+   Sekarang di sini, jadi /mulai, /laporan, dan halaman admin seragam. */
+.kartu-filter { padding: var(--space-4); }
+.pilih-baris { display: flex; flex-direction: column; gap: var(--space-4); }
+/* Dua-dari-tiga kolom kalau layarnya muat, kalau tidak tumpuk. `auto-fit`
+   + minmax dipilih supaya jumlah grup boleh beda per halaman (mulai = 3,
+   laporan = 2) tanpa satu pun media query per halaman. */
+@media (min-width: 700px) {
+  .pilih-baris { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: start; }
+}
+.pilih-grup { min-width: 0; }
+/* `.tabs` bawa margin-bottom untuk berdiri sendiri; di dalam kartu filter itu
+   cuma jadi jarak aneh ke tepi kartu. */
+.pilih-grup .tabs { margin-bottom: 0; }
+.pilih-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+/* Lencana jumlah di dalam tab (sisa santri per kelompok). */
+.tab-sisa {
+  display: inline-block; margin-left: 6px; padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--primary-light); color: var(--primary);
+  font-size: var(--text-xs); font-weight: 700; line-height: 1.6;
+}
+.tab.active .tab-sisa { background: var(--primary); color: var(--teks-aksen); }
 
 /* --- Tabs --- */
 /* Tiga hal yang harus benar sekaligus, dan alasannya saling terkait:
@@ -448,8 +539,12 @@ textarea { resize: vertical; min-height: 80px; }
 .tabs {
   display: flex; gap: var(--space-1);
   background: var(--bg); border-radius: var(--radius-md);
-  padding: 3px; margin-bottom: var(--space-4);
-  width: 100%; justify-content: center;
+  padding: 4px; margin-bottom: var(--space-4);
+  width: 100%;
+  /* Selalu dari kiri. `center` dulu membuat tab di desktop mengambang di
+     tengah trek abu sementara di HP rata kiri -- dua tampilan berbeda untuk
+     kontrol yang sama, dan mata harus mencari ulang posisinya tiap layar. */
+  justify-content: flex-start;
   overflow-x: auto; overscroll-behavior-x: contain;
   /* Scrollbar disembunyikan, kemampuan scroll tetap ada (swipe di HP
      jalan), dan halaman tidak ikut terseret saat tab digeser sampai ujung. */
@@ -465,24 +560,28 @@ textarea { resize: vertical; min-height: 80px; }
   color: var(--muted); background: transparent;
   cursor: pointer; transition: all 0.15s ease;
   text-align: center;
+  /* Target sentuh 44px (R13). Padding 10px + teks 14px cuma ~38px, dan ini
+     kontrol yang paling sering diketuk sambil berdiri di depan santri. */
+  min-height: 44px;
   /* Label satu baris, selalu. Tanpa ini "BK 1 — lafad" dan "Kelompok 2"
      tinggal satu kata sebelum pecah, dan tinggi baris ikut bergeser. */
   white-space: nowrap;
 }
 .tab.active {
   background: var(--surface); color: var(--text);
+  font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
 
-@media (max-width: 899px) {
-  /* Di HP tidak dipusatkan: `flex: 1` sudah membagi rata. */
-  .tabs { justify-content: flex-start; }
-}
 @media (min-width: 900px) {
-  /* Tab selebar 1200px membuat "Ujian" jadi tombol raksasa dengan dua huruf
-     di tengahnya. */
+  /* `.tabs` tetap selebar wadahnya (bukan `fit-content`: itu menyusut ikut
+     isi dan `overflow-x` tidak pernah aktif). `.tab` memakai `flex: 1` di
+     semua lebar supaya tab menutup penuh trek abunya -- segmented control
+     yang menyisakan kolom kosong di kanan (dulu: tab dipusatkan di tengah
+     trek) terbaca sebagai elemen yang belum selesai. Kalau jumlah tab membuat
+     lebar isinya melebihi wadah, `min-content` memaksa tab melebihi wadah dan
+     `.tabs` menggulir sendiri, jadi tidak perlu pemisahan lebar per halaman. */
   .tabs { max-width: 100%; }
-  .tab { flex: 0 0 auto; }
 }
 
 /* --- Search Input --- */
@@ -535,6 +634,14 @@ td.kiri, th.kiri { text-align: left; }
 .meter-fill { display: block; height: 100%; background: var(--primary); border-radius: var(--radius-full); transition: width 0.3s ease; }
 
 /* --- Utilities --- */
+/* Angka besar berwarna utama: nilai akhir, jumlah sesi. Sengaja diletakkan
+   SEBELUM utility margin (mt-1 dst.), supaya `margin: 0` di sini bisa
+   ditimpa oleh kelas jarak kalau sebuah layar butuh spasi. */
+.angka { font-size: var(--text-3xl); font-weight: 700; color: var(--primary); margin: 0; }
+/* Paragraf tanpa jarak. `<p>` bawaan browser punya margin 1em atas-bawah;
+   di dalam kartu itu biasanya salah, bukan harapan desain (tiap halaman
+   dulu menuliskan `style="margin: 0"` berulang kali untuk menawannya). */
+.rapat { margin: 0; }
 /* Shell A (HP) dan shell B (desktop) punya tempat logout masing-masing:
    sidebar di desktop, header halaman di HP. Tombol yang ada di dua-duanya
    hanya bikin ragu ("keluar dua kali?"), jadi util ini untuk memilih satu.
@@ -549,6 +656,8 @@ td.kiri, th.kiri { text-align: left; }
 .font-medium { font-weight: 500; }
 .font-semibold { font-weight: 600; }
 .font-bold { font-weight: 700; }
+/* Judul kecil tebal di dalam kartu (judul peringatan, dst). */
+.tegas { margin: 0; font-weight: 600; font-size: var(--text-sm); }
 .text-primary { color: var(--primary); }
 .text-success { color: var(--success); }
 .text-warning { color: var(--warning); }
@@ -564,6 +673,9 @@ td.kiri, th.kiri { text-align: left; }
 .gap-2 { gap: var(--space-2); }
 .gap-3 { gap: var(--space-3); }
 .flex-1 { flex: 1; }
+/* Dua tombol berdampingan: aksi utama dua bagian, aksi cadangan satu. */
+.flex-2 { flex: 2; }
+.py-8 { padding-top: var(--space-8); padding-bottom: var(--space-8); }
 .hidden { display: none; }
 
 /* --- Transisi perpindahan halaman ---

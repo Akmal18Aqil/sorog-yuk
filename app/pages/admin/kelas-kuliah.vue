@@ -97,17 +97,17 @@ async function eksekusiNaik() {
 
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="page-head">
       <NuxtLink to="/admin" class="back-btn">← Kembali</NuxtLink>
     </div>
-    <h1 style="margin-bottom: var(--space-2)">Kelas Kuliah</h1>
-    <p class="text-muted text-sm" style="margin-bottom: var(--space-4)">
+    <h1 class="page-title">Kelas Kuliah</h1>
+    <p class="text-muted text-sm page-sub">
       Dikelompokkan berdasarkan semester. Naik semester berlaku untuk Santri aktif
       di semester tersebut.
     </p>
     <p v-if="galat" class="galat">{{ galat }}</p>
 
-    <div v-for="g in perSemester" :key="g.semester" class="kartu" style="padding: 0; overflow: hidden">
+    <div v-for="g in perSemester" :key="g.semester" class="kartu kartu-rapat">
       <div class="list-item">
         <span class="avatar">{{ g.semester === 0 ? '?' : g.semester }}</span>
         <div class="list-item-content">

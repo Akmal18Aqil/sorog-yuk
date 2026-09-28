@@ -65,11 +65,17 @@ const baris = computed(() => semua.value.filter(r =>
 
 const nilaiTeks = (r: BarisLaporan) => r.nilai_terakhir == null ? '–' : String(r.nilai_terakhir)
 
+/** Rata tampil: cuma dari yang ada nilainya — anak tanpa nilai tidak ikut menekan rata. */
+const rataTampil = computed(() => {
+  const ada = baris.value.map(r => r.nilai_terakhir).filter((n): n is number => n != null)
+  return ada.length ? String(Math.round(ada.reduce((a, b) => a + b, 0) / ada.length)) : '–'
+})
+
 /** Judul dokumen: ikut filter yang sedang aktif, supaya hasil cetak/Excel
  *  menjelaskan dirinya sendiri tanpa bertanya "ini saringan yang mana". */
 const judulFilter = computed(() => {
   const s = fSemester.value ? `Semester ${fSemester.value}` : 'Semua semester'
-  const b = fBK.value ? fBK.value.replace('BK', 'BK ') : 'Semua BK'
+  const b = fBK.value ? bkTeks(fBK.value) : 'Semua BK'
   return `${s} · ${b}`
 })
 const judulDokumen = computed(() => `Laporan Sorogan — ${judulFilter.value}`)
@@ -130,11 +136,18 @@ function keCsv(v: string | number | null | undefined): string {
   return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t
 }
 
+function bkTeks(bk: string | null | undefined): string {
+  if (!bk) return '–'
+  return bk.includes('BK ') ? bk : bk.replace('BK', 'BK ')
+}
+
 function unduhExcel() {
-  const kepala = ['No', 'Nama', 'Kode', 'Semester', 'BK', 'Kelompok', 'Nilai', 'Tanggal nilai', 'Status', 'Kendala']
+  // Kolom CSV = kolom tabel layar (No, Nama, Smt, Kelas, Kelompok, Nilai,
+  // Tgl Nilai, Status, Kendala). `kode` internal tidak ikut — bukan untuk walikelas.
+  const kepala = ['No', 'Nama', 'Semester', 'Kelas Sorogan', 'Kelompok', 'Nilai', 'Tanggal Nilai', 'Status', 'Kendala']
   const isi = baris.value.map((r, i) => [
-    i + 1, r.nama ?? '', r.kode ?? '', r.semester ?? '', r.bk ?? '',
-    r.kelompok_nama ?? '', r.nilai_terakhir ?? '', r.tanggal_nilai ?? '',
+    i + 1, r.nama ?? '', r.semester ?? '', bkTeks(r.bk),
+    r.kelompok_nama ?? '', r.nilai_terakhir ?? '', r.tanggal_nilai ? tanggalPanjang(r.tanggal_nilai) : '',
     r.status_terakhir ?? '', r.kendala_terakhir ?? '',
   ])
   const csv = '﻿' + [kepala, ...isi].map(b => b.map(keCsv).join(';')).join('\r\n')
@@ -148,11 +161,11 @@ function unduhExcel() {
 }
 
 async function salin() {
-  const teks = baris.value.map((r, i) =>
-    `${i + 1}. ${r.nama} (Smt ${r.semester ?? '–'} · ${r.bk ?? '–'} · ${r.kelompok_nama ?? '–'})`
+  const barisTeks = (r: BarisLaporan, i: number) =>
+    `${i + 1}. ${r.nama} (Smt ${r.semester ?? '–'} · Kelas ${bkTeks(r.bk)} · ${r.kelompok_nama ?? '–'})`
     + ` — Nilai: ${nilaiTeks(r)}${r.tanggal_nilai ? ` (${tanggalPanjang(r.tanggal_nilai)})` : ''}`
-    + ` — ${r.status_terakhir ?? 'belum dinilai'}${r.kendala_terakhir ? ` — Kendala: ${r.kendala_terakhir}` : ''}`,
-  ).join('\n')
+    + ` — ${r.status_terakhir ?? 'belum dinilai'}${r.kendala_terakhir ? ` — Kendala: ${r.kendala_terakhir}` : ''}`
+  const teks = [`${judulDokumen.value}`, ...baris.value.map(barisTeks)].join('\n')
   try {
     await navigator.clipboard.writeText(teks)
     toast.success(`${baris.value.length} baris disalin.`)
@@ -163,25 +176,28 @@ async function salin() {
 
 <template>
   <div>
-    <div class="nocetak" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="nocetak page-head">
       <NuxtLink :to="kembaliKe" class="back-btn">← Kembali</NuxtLink>
-      <div style="display: flex; gap: 8px">
-        <button class="kecil" @click="salin">Salin WA</button>
-        <button class="kecil" @click="unduhExcel">Excel</button>
-        <button class="kecil" @click="cetak">Cetak</button>
-      </div>
     </div>
 
-    <h1 class="nocetak" style="margin-bottom: var(--space-2)">Laporan</h1>
-    <p class="nocetak text-muted text-xs" style="margin-top: 0">
+    <h1 class="nocetak page-title">Laporan</h1>
+    <p class="nocetak text-muted text-xs page-sub">
       Nilai = rata sorogan harian terakhir. Filter minggu/bulan/tahun menyusul Fase 2.
     </p>
+
+    <!-- Aksi dokumen di bawah judul: di desktop segaris kanan, di HP 3 kolom
+         sama lebar. Terpisah dari baris Kembali supaya tidak berebut ruang. -->
+    <div class="nocetak toolbar toolbar-dokumen" role="group" aria-label="Ekspor dan cetak laporan">
+      <button class="kecil" title="Salin laporan tersaring sebagai teks WA" @click="salin">Salin WA</button>
+      <button class="kecil" title="Unduh laporan tersaring sebagai CSV (dibuka di Excel)" @click="unduhExcel">Excel</button>
+      <button class="kecil toolbar-utama" title="Cetak laporan tersaring" @click="cetak">Cetak</button>
+    </div>
 
     <p v-if="memuat" class="text-muted text-sm">Memuat...</p>
     <p v-else-if="galat" class="galat">{{ galat }}</p>
 
     <template v-else>
-      <div class="kartu nocetak">
+      <div class="kartu kartu-filter nocetak">
         <div class="pilih-baris">
           <div class="pilih-grup">
             <span class="pilih-label" id="lbl-semester">Semester</span>
@@ -202,7 +218,7 @@ async function salin() {
                 v-for="b in opsiBK" :key="b"
                 class="tab" :class="{ active: fBK === b }"
                 @click="fBK = b"
-              >{{ b.replace('BK', 'BK ') }}</button>
+              >{{ bkTeks(b) }}</button>
             </div>
           </div>
         </div>
@@ -211,31 +227,35 @@ async function salin() {
       <!-- Ringkasan silang: baris = BK, kolom = semester. Sel diklik langsung
            jadi filter (klik lagi / "Semua" untuk lepas). Angka ikut data yang
            sama dengan tabel di bawah, jadi tidak mungkin selisih. -->
-      <div v-if="ringkasan.total" class="kartu nocetak">
+      <div v-if="ringkasan.total" class="kartu kartu-filter nocetak">
         <span class="pilih-label">Sebaran santri</span>
         <div class="gulir">
           <table class="ringkas">
-            <tr>
-              <th class="kiri">BK \ Smt</th>
-              <th v-for="s in ringkasan.semester" :key="s">Smt {{ s }}</th>
-              <th>Total</th>
-            </tr>
-            <tr v-for="b in ringkasan.bk" :key="b">
-              <th class="kiri">{{ b.replace('BK', 'BK ') }}</th>
-              <td v-for="s in ringkasan.semester" :key="s">
-                <button
-                  class="sel" :class="{ aktif: fBK === b && fSemester === s, nol: !ringkasan.jumlah(b, s) }"
-                  :title="`Tampilkan ${b} semester ${s}`"
-                  @click="fBK === b && fSemester === s ? (fBK = '', fSemester = 0) : (fBK = b, fSemester = s)"
-                >{{ ringkasan.jumlah(b, s) || '–' }}</button>
-              </td>
-              <td><b>{{ ringkasan.totalBK(b) }}</b></td>
-            </tr>
-            <tr>
-              <th class="kiri">Total</th>
-              <td v-for="s in ringkasan.semester" :key="s"><b>{{ ringkasan.totalSemester(s) }}</b></td>
-              <td><b>{{ ringkasan.total }}</b></td>
-            </tr>
+            <thead>
+              <tr>
+                <th class="kiri">BK \ Smt</th>
+                <th v-for="s in ringkasan.semester" :key="s">Smt {{ s }}</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="b in ringkasan.bk" :key="b">
+                <th class="kiri">{{ bkTeks(b) }}</th>
+                <td v-for="s in ringkasan.semester" :key="s">
+                  <button
+                    class="sel" :class="{ aktif: fBK === b && fSemester === s, nol: !ringkasan.jumlah(b, s) }"
+                    :title="`Tampilkan ${b} semester ${s}`"
+                    @click="fBK === b && fSemester === s ? (fBK = '', fSemester = 0) : (fBK = b, fSemester = s)"
+                  >{{ ringkasan.jumlah(b, s) || '–' }}</button>
+                </td>
+                <td><b>{{ ringkasan.totalBK(b) }}</b></td>
+              </tr>
+              <tr>
+                <th class="kiri">Total</th>
+                <td v-for="s in ringkasan.semester" :key="s"><b>{{ ringkasan.totalSemester(s) }}</b></td>
+                <td><b>{{ ringkasan.total }}</b></td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -250,22 +270,28 @@ async function salin() {
         <div v-if="!rekap.length" class="text-muted text-sm">Belum ada aktivitas tercatat.</div>
         <div v-else class="gulir">
           <table>
-            <tr><th class="kiri">Musrif</th><th>Sesi bln ini</th><th>Total sesi</th><th>Hadir dicatat</th><th>Kendala</th><th class="kiri">Terakhir aktif</th></tr>
-            <tr v-for="m in rekap" :key="m.ustadz_id">
-              <td class="kiri">{{ m.nama }}</td>
-              <td>{{ m.sesi_bulan_ini }}</td>
-              <td>{{ m.jml_sesi }}</td>
-              <td>{{ m.jml_hadir }}</td>
-              <td>{{ m.jml_kendala }}</td>
-              <td class="kiri">{{ m.terakhir_aktif ? tanggalPanjang(m.terakhir_aktif) : '–' }}</td>
-            </tr>
+            <thead>
+              <tr><th class="kiri">Musrif</th><th>Sesi bln ini</th><th>Total sesi</th><th>Hadir dicatat</th><th>Kendala</th><th class="kiri">Terakhir aktif</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="m in rekap" :key="m.ustadz_id">
+                <td class="kiri">{{ m.nama }}</td>
+                <td>{{ m.sesi_bulan_ini }}</td>
+                <td>{{ m.jml_sesi }}</td>
+                <td>{{ m.jml_hadir }}</td>
+                <td>{{ m.jml_kendala }}</td>
+                <td class="kiri">{{ m.terakhir_aktif ? tanggalPanjang(m.terakhir_aktif) : '–' }}</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
 
       <div class="section dokumen">
-        <div class="section-header">
+        <div class="section-header nocetak">
           <h2 class="section-title">Santri ({{ baris.length }})</h2>
+          <!-- Hitungan cepat di layar: jumlah tampil + rata nilai yang ada nilainya. -->
+          <span v-if="baris.length" class="text-muted text-xs">Rata: {{ rataTampil }}</span>
         </div>
         <!-- Kop dokumen: hanya muncul di cetakan. Di layar disembunyikan supaya
              tidak dobel dengan <h1> + tombol di atas. -->
@@ -274,15 +300,17 @@ async function salin() {
           <p>Dicetak {{ tanggalPanjang(hariIni()) }} · {{ baris.length }} santri</p>
         </div>
         <div v-if="!baris.length" class="text-muted text-sm">Tidak ada santri pada filter ini.</div>
-        <div v-else class="gulir">
+        <div v-else class="gulir bungkus-laporan">
           <table class="tabel-laporan">
             <thead>
-              <tr><th>No.</th><th class="kiri">Nama</th><th class="kiri">Kelompok</th><th>Nilai</th><th class="kiri">Status</th><th class="kiri">Kendala</th></tr>
+              <tr><th class="no">No.</th><th class="kiri">Nama</th><th>Smt</th><th>Kelas<br>Sorogan</th><th class="kiri">Kelompok</th><th>Nilai</th><th class="kiri">Status</th><th class="kiri">Kendala</th></tr>
             </thead>
             <tbody>
               <tr v-for="(r, i) in baris" :key="r.santri_id ?? i">
-                <td>{{ i + 1 }}</td>
-                <td class="kiri">{{ r.nama }}<br><span class="text-muted text-xs">Smt {{ r.semester ?? '–' }} · {{ r.bk ?? '–' }}</span></td>
+                <td class="no">{{ i + 1 }}</td>
+                <td class="kiri">{{ r.nama }}</td>
+                <td>{{ r.semester ?? '–' }}</td>
+                <td>{{ bkTeks(r.bk) }}</td>
                 <td class="kiri">{{ r.kelompok_nama ?? '–' }}</td>
                 <td><b>{{ nilaiTeks(r) }}</b><br v-if="r.tanggal_nilai"><span v-if="r.tanggal_nilai" class="text-muted text-xs">{{ tanggalPanjang(r.tanggal_nilai) }}</span></td>
                 <td class="kiri">{{ r.status_terakhir ?? '–' }}</td>
@@ -323,6 +351,11 @@ async function salin() {
 .sel.nol { color: var(--muted); font-weight: 400; }
 .sel.aktif { background: var(--primary); border-color: var(--primary); color: var(--teks-aksen); }
 
+/* Tabel santri: kolom No/Smt/Kelas/Nilai jangan membungkus — angkanya pendek,
+   yang boleh bungkus cuma Nama/Kelompok/Status/Kendala. */
+.tabel-laporan .no { white-space: nowrap; }
+.tabel-laporan td:nth-child(3), .tabel-laporan td:nth-child(4), .tabel-laporan td:nth-child(6) { white-space: nowrap; }
+
 /* Kop + tanda tangan: hanya untuk cetakan, disembunyikan di layar. */
 .kop, .ttd { display: none; }
 </style>
@@ -333,20 +366,39 @@ async function salin() {
    `scoped` — selektornya diawali `.dokumen`/`.kop`/`.ttd` supaya tidak
    menyentuh halaman lain. */
 @media print {
-  /* Kertas A4 portrait, margin hemat — tabel 6 kolom harus muat 1 halaman lebar. */
-  @page { size: A4 portrait; margin: 12mm 10mm; }
+  /* 8 kolom butuh lebar: landscape A4 = 277mm bersih, portrait (190mm)
+     bikin kolom Kendala kepotong / membungkus jelek. */
+  @page { size: A4 landscape; margin: 10mm; }
   /* Sembunyikan SEMUA section kecuali dokumen santri: rekap musrif dan sebaran
      adalah alat kerja layar (ada tombol klik di dalamnya), bukan untuk walikelas.
      Tanpa ini cetakan 1 filter = 6 halaman campur aduk. */
   body.laporan-cetak .section:not(.dokumen) { display: none !important; }
-  .kop { display: block; text-align: center; margin-bottom: 12px; }
-  .kop h1 { font-size: 16pt; margin: 0 0 4px; }
-  .kop p { font-size: 10pt; color: #444; margin: 0; }
-  /* Header tabel berulang tiap halaman — laporan 50+ anak tidak kepotong judul. */
+  body.laporan-cetak .dokumen { margin: 0; }
+  .kop { display: block; text-align: center; margin-bottom: 10px; }
+  .kop h1 { font-size: 16pt; margin: 0 0 4px; color: #000; }
+  .kop p { font-size: 10pt; color: #333; margin: 0; }
+  /* Bungkus gulir layar (overflow-x + kolom sticky) WAJIB dinetralkan di kertas:
+     tanpa ini tabel tercetak terjepit selebar viewport HP + bayangan sticky
+     menutup garis sel. */
+  .bungkus-laporan { overflow: visible !important; }
+  .bungkus-laporan > table th.kiri, .bungkus-laporan > table td.kiri {
+    position: static !important; box-shadow: none !important; background: #fff !important;
+  }
+  /* Tabel sempurna: semua garis hitam 1px, header berulang tiap halaman,
+     baris tidak terpotong dua halaman, mode gelap dipaksa putih. */
+  .tabel-laporan {
+    width: 100% !important; border-collapse: collapse !important;
+    border: 1px solid #000 !important; background: #fff !important; color: #000 !important;
+  }
   .tabel-laporan thead { display: table-header-group; }
   .tabel-laporan tr { break-inside: avoid; }
-  .tabel-laporan th, .tabel-laporan td { font-size: 10pt; padding: 4px 6px; }
-  .ttd { display: flex; justify-content: space-between; margin-top: 24px; }
+  .tabel-laporan th, .tabel-laporan td {
+    border: 1px solid #000 !important; background: #fff !important; color: #000 !important;
+    font-size: 9pt; padding: 4px 6px; vertical-align: top;
+  }
+  .tabel-laporan th { background: #eee !important; font-weight: 700; }
+  .tabel-laporan .text-muted { color: #333 !important; }
+  .ttd { display: flex; justify-content: space-between; margin-top: 24px; color: #000; }
   .ttd-kotak { text-align: center; font-size: 10pt; }
   .ttd-nama { margin-top: 48px; }
 }

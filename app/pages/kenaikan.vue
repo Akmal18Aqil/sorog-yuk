@@ -85,13 +85,13 @@ async function putuskan(r: Kesiapan, setuju: boolean) {
 <template>
   <div>
     <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="page-head">
       <NuxtLink to="/mulai" class="back-btn">← Kembali</NuxtLink>
       <span class="text-muted text-sm">{{ ustadz?.nama }}</span>
     </div>
 
-    <h1 style="margin-bottom: var(--space-2)">Kenaikan Kelas</h1>
-    <p class="text-muted text-sm" style="margin-bottom: var(--space-4)">
+    <h1 class="page-title">Kenaikan Kelas</h1>
+    <p class="text-muted text-sm page-sub">
       Naik kelas menuntut <b>dua</b> tes: ujian daring dan tes luring tatap muka.
     </p>
 
@@ -107,7 +107,7 @@ async function putuskan(r: Kesiapan, setuju: boolean) {
         </div>
         <p v-if="!siap.length" class="text-muted text-sm">Belum ada yang memenuhi kedua ambang.</p>
 
-        <div v-for="r in siap" :key="r.santri_id ?? 0" class="kartu" style="border-left: 3px solid var(--success)">
+        <div v-for="r in siap" :key="r.santri_id ?? 0" class="kartu kartu-sukses">
           <KesiapanRingkas :baris="r" tampilkan-tujuan />
           <div class="baris" style="margin-top: var(--space-3)">
             <button class="utama" style="flex: 2" :disabled="sibuk === r.santri_id" @click="putuskan(r, true)">

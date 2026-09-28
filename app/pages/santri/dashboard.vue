@@ -73,6 +73,6 @@ function formatNilai(v: number | null): string {
         </tbody>
       </table>
     </div>
-    <p v-else class="redup" style="text-align: center">Belum ada nilai.</p>
+    <p v-else class="redup text-center">Belum ada nilai.</p>
   </div>
 </template>

@@ -138,7 +138,7 @@ async function simpanSandi() {
         <Badge :label="`${daftar.filter(d => d.aktif).length} aktif`" />
       </div>
 
-      <div v-for="a in daftar" :key="a.id" class="kartu" style="padding: 0; overflow: hidden">
+      <div v-for="a in daftar" :key="a.id" class="kartu kartu-rapat">
         <div class="list-item">
           <span class="avatar">🛡️</span>
           <div class="list-item-content">

@@ -70,11 +70,13 @@ async function konfirmasiHapus() {
 
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="page-head">
       <NuxtLink to="/admin/kitab" class="back-btn">← Kembali</NuxtLink>
-      <button class="utama" style="width: auto; padding: 0 var(--space-4)" @click="bukaTambah">+ Tambah</button>
+      <div class="toolbar" role="group" aria-label="Tambah ibarat">
+        <button class="utama btn-tambah" @click="bukaTambah">+ Tambah</button>
+      </div>
     </div>
-    <h1 style="margin-bottom: var(--space-4)">Ibarat</h1>
+    <h1 class="page-title">Ibarat</h1>
     <p v-if="galat" class="galat">{{ galat }}</p>
 
     <div v-for="(ib, i) in daftar" :key="ib.id" class="kartu">

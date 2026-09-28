@@ -31,6 +31,7 @@ const item = computed(() => navUntuk(role.value))
           class="sidebar-item"
           :aria-current="route.path === i.to ? 'page' : undefined"
         >
+          <IkonNav :nama="i.ikon" />
           {{ i.label }}
         </NuxtLink>
       </li>
@@ -86,6 +87,7 @@ const item = computed(() => navUntuk(role.value))
 .sidebar-item {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   min-height: 44px;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);

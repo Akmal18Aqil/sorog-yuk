@@ -15,7 +15,8 @@ const item = computed(() => navUtama(role.value))
       class="bottom-nav-item"
       :aria-current="route.path === i.to ? 'page' : undefined"
     >
-      {{ i.label }}
+      <IkonNav :nama="i.ikon" />
+      <span class="bottom-nav-label">{{ i.label }}</span>
     </NuxtLink>
   </nav>
 </template>

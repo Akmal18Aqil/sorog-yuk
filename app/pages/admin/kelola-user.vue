@@ -366,13 +366,15 @@ function copyKode(kode: string) {
 <template>
   <div>
     <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="page-head">
       <NuxtLink to="/admin" class="back-btn">← Kembali</NuxtLink>
-      <button class="utama" style="width: auto; padding: 0 var(--space-4)" @click="bukaTambah(tab)">
-        + Tambah
-      </button>
+      <div class="toolbar" role="group" aria-label="Tambah user">
+        <button class="utama btn-tambah" @click="bukaTambah(tab)">
+          + Tambah
+        </button>
+      </div>
     </div>
-    <h1 style="margin-bottom: var(--space-4)">Kelola User</h1>
+    <h1 class="page-title">Kelola User</h1>
 
     <!-- Tabs -->
     <div class="tabs">
@@ -444,7 +446,7 @@ function copyKode(kode: string) {
     </label>
     <!-- Mentor List -->
     <template v-if="tab === 'ustadz'">
-      <div v-for="u in tampilUstadz" :key="u.id" class="kartu" style="padding: 0; overflow: hidden">
+      <div v-for="u in tampilUstadz" :key="u.id" class="kartu kartu-rapat">
         <div class="list-item">
           <Avatar :name="u.nama" />
           <div class="list-item-content">
@@ -473,7 +475,7 @@ function copyKode(kode: string) {
 
     <!-- Santri List -->
     <template v-else>
-      <div v-for="s in tampilSantri" :key="s.id" class="kartu" style="padding: 0; overflow: hidden">
+      <div v-for="s in tampilSantri" :key="s.id" class="kartu kartu-rapat">
         <div class="list-item">
           <Avatar :name="s.nama" />
           <div class="list-item-content">

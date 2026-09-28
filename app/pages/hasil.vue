@@ -70,12 +70,15 @@ const cetak = () => window.print()
 <template>
   <div>
     <!-- Header -->
-    <div class="nocetak" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="nocetak page-head">
       <NuxtLink to="/mulai" class="back-btn">← Kembali</NuxtLink>
-      <button class="kecil" @click="cetak">Cetak</button>
+      <div class="toolbar" role="group" aria-label="Cetak hasil">
+        <button class="kecil toolbar-utama" @click="cetak">Cetak</button>
+      </div>
     </div>
 
-    <h1 class="nocetak" style="margin-bottom: var(--space-4)">Hasil</h1>
+    <h1 class="nocetak page-title">Hasil</h1>
+    <p class="nocetak text-muted text-sm page-sub">Nilai santri, kelemahan, dan leger hari ini.</p>
 
     <p v-if="memuat" class="text-muted text-sm">Memuat...</p>
     <p v-else-if="galat" class="galat">{{ galat }}</p>
@@ -86,12 +89,16 @@ const cetak = () => window.print()
         <h2 class="section-title">Nilai Santri</h2>
         <div class="gulir">
           <table>
-            <tr><th class="kiri">Santri</th><th>Soal</th><th>Nilai</th></tr>
-            <tr v-for="r in nilaiSantri" :key="r.santri_id">
-              <td class="kiri">{{ namaSantri.get(r.santri_id) ?? `#${r.santri_id}` }}</td>
-              <td>{{ r.jml_soal }}</td>
-              <td><b>{{ r.nilai }}</b></td>
-            </tr>
+            <thead>
+              <tr><th class="kiri">Santri</th><th>Soal</th><th>Nilai</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in nilaiSantri" :key="r.santri_id">
+                <td class="kiri">{{ namaSantri.get(r.santri_id) ?? `#${r.santri_id}` }}</td>
+                <td>{{ r.jml_soal }}</td>
+                <td><b>{{ r.nilai }}</b></td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -101,12 +108,16 @@ const cetak = () => window.print()
         <h2 class="section-title">Anak-Tangga Terlemah</h2>
         <div class="gulir">
           <table>
-            <tr><th class="kiri">Pertanyaan</th><th>N</th><th>Nilai</th></tr>
-            <tr v-for="k in kelemahan" :key="k.kunci">
-              <td class="kiri">{{ k.pertanyaan }}<br><span class="text-muted text-xs">{{ k.tipe }}</span></td>
-              <td>{{ k.n }}</td>
-              <td><div class="meter"><div class="meter-fill" :style="{ width: `${k.nilai}%` }" /></div>{{ k.nilai }}</td>
-            </tr>
+            <thead>
+              <tr><th class="kiri">Pertanyaan</th><th>N</th><th>Nilai</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="k in kelemahan" :key="k.kunci">
+                <td class="kiri">{{ k.pertanyaan }}<br><span class="text-muted text-xs">{{ k.tipe }}</span></td>
+                <td>{{ k.n }}</td>
+                <td><div class="meter"><div class="meter-fill" :style="{ width: `${k.nilai}%` }" /></div>{{ k.nilai }}</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -117,17 +128,21 @@ const cetak = () => window.print()
           <h2 class="section-title">Kalibrasi Penguji</h2>
           <div class="gulir">
             <table>
-              <tr><th class="kiri">Penguji</th><th>Dinilai</th><th>Rata</th><th>Pembanding</th><th>Terkalibrasi</th></tr>
-              <tr v-for="r in kalibrasi" :key="r.ustadz_id ?? 0">
-                <td class="kiri">{{ r.nama }}</td>
-                <td>{{ r.jml_santri }}</td>
-                <td class="text-muted">{{ r.rata_penguji }}</td>
-                <td>{{ r.jml_pembanding }}</td>
-                <td v-if="r.selisih_terkalibrasi === null" class="text-muted">—</td>
-                <td v-else :class="{ 'text-error': Math.abs(r.selisih_terkalibrasi) > 10 }">
-                  {{ r.selisih_terkalibrasi > 0 ? '+' : '' }}{{ r.selisih_terkalibrasi }}
-                </td>
-              </tr>
+              <thead>
+                <tr><th class="kiri">Penguji</th><th>Dinilai</th><th>Rata</th><th>Pembanding</th><th>Terkalibrasi</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in kalibrasi" :key="r.ustadz_id ?? 0">
+                  <td class="kiri">{{ r.nama }}</td>
+                  <td>{{ r.jml_santri }}</td>
+                  <td class="text-muted">{{ r.rata_penguji }}</td>
+                  <td>{{ r.jml_pembanding }}</td>
+                  <td v-if="r.selisih_terkalibrasi === null" class="text-muted">—</td>
+                  <td v-else :class="{ 'text-error': Math.abs(r.selisih_terkalibrasi) > 10 }">
+                    {{ r.selisih_terkalibrasi > 0 ? '+' : '' }}{{ r.selisih_terkalibrasi }}
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -139,11 +154,15 @@ const cetak = () => window.print()
           <h2 class="section-title">Soal Tersulit</h2>
           <div class="gulir">
             <table>
-              <tr><th class="kiri">Soal</th><th>Nilai</th></tr>
-              <tr v-for="r in soalSulit" :key="r.soal_id ?? 0">
-                <td class="kiri arab" style="font-size: 1.2rem">{{ r.teks }}</td>
-                <td>{{ Math.round(r.nilai ?? 0) }}</td>
-              </tr>
+              <thead>
+                <tr><th class="kiri">Soal</th><th>Nilai</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in soalSulit" :key="r.soal_id ?? 0">
+                  <td class="kiri arab soal-arab">{{ r.teks }}</td>
+                  <td>{{ Math.round(r.nilai ?? 0) }}</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -152,25 +171,29 @@ const cetak = () => window.print()
 
     <!-- Leger -->
     <div v-if="barisLeger.length" class="leger">
-      <h1 style="text-align: center; font-size: var(--text-xl)">Leger Penilaian</h1>
-      <p style="text-align: center" class="text-muted text-sm">
+      <h1 class="text-center leger-judul">Leger Penilaian</h1>
+      <p class="text-center text-muted text-sm">
         Penguji: {{ ustadz?.nama }} · {{ tanggalPanjang(tanggal) }}
       </p>
       <div class="gulir">
         <table>
-          <tr>
-            <th>No.</th><th class="kiri">Nama</th>
-            <th v-for="i in jmlKolom" :key="i">{{ i }}</th>
-            <th>Nilai</th>
-          </tr>
-          <tr v-for="(b, i) in barisLeger" :key="b.santri_id">
-            <td>{{ i + 1 }}</td>
-            <td class="kiri">{{ b.nama }}</td>
-            <td v-for="k in jmlKolom" :key="k">
-              {{ b.kolom.has(k) ? Math.round(b.kolom.get(k)!) : '' }}
-            </td>
-            <td><b>{{ b.rata }}</b></td>
-          </tr>
+          <thead>
+            <tr>
+              <th>No.</th><th class="kiri">Nama</th>
+              <th v-for="i in jmlKolom" :key="i">{{ i }}</th>
+              <th>Nilai</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(b, i) in barisLeger" :key="b.santri_id">
+              <td>{{ i + 1 }}</td>
+              <td class="kiri">{{ b.nama }}</td>
+              <td v-for="k in jmlKolom" :key="k">
+                {{ b.kolom.has(k) ? Math.round(b.kolom.get(k)!) : '' }}
+              </td>
+              <td><b>{{ b.rata }}</b></td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -179,4 +202,6 @@ const cetak = () => window.print()
 
 <style scoped>
 .leger { margin-top: var(--space-6); }
+.leger-judul { font-size: var(--text-xl); }
+.soal-arab { font-size: 1.2rem; }
 </style>

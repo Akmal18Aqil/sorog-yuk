@@ -5,6 +5,9 @@ export interface ItemNav {
   to: string
   /** Tampil di navigasi bawah HP. Sisanya hanya ada di sidebar desktop. */
   utama: boolean
+  /** Nama ikon SVG bawaan (lihat `IkonNav` di BottomNav/Sidebar). Tanpa emoji:
+   *  emoji beda bentuk tiap HP (DESAIN.md §10). */
+  ikon: string
 }
 
 /**
@@ -17,28 +20,28 @@ export interface ItemNav {
  */
 const NAV: Record<Role, ItemNav[]> = {
   superadmin: [
-    { label: 'Beranda', to: '/admin', utama: true },
-    { label: 'User', to: '/admin/kelola-user', utama: true },
-    { label: 'Kelas', to: '/admin/kelas', utama: true },
-    { label: 'Kelas Kuliah', to: '/admin/kelas-kuliah', utama: false },
-    { label: 'Kelompok', to: '/admin/kelompok', utama: true },
-    { label: 'Kitab', to: '/admin/kitab', utama: true },
+    { label: 'Beranda', to: '/admin', utama: true, ikon: 'beranda' },
+    { label: 'User', to: '/admin/kelola-user', utama: true, ikon: 'user' },
+    { label: 'Kelas', to: '/admin/kelas', utama: true, ikon: 'kelas' },
+    { label: 'Kelas Kuliah', to: '/admin/kelas-kuliah', utama: false, ikon: 'kuliah' },
+    { label: 'Kelompok', to: '/admin/kelompok', utama: true, ikon: 'kelompok' },
+    { label: 'Kitab', to: '/admin/kitab', utama: true, ikon: 'kitab' },
     // Laporan dipakai BERSAMA musrif (satu halaman /laporan, dibuka superadmin
     // lewat pengecualian di middleware). Sidebar saja: bottom nav sudah 5 item.
-    { label: 'Laporan', to: '/laporan', utama: false },
-    { label: 'Soal', to: '/admin/soal', utama: false },
-    { label: 'Langkah', to: '/admin/langkah', utama: false },
+    { label: 'Laporan', to: '/laporan', utama: false, ikon: 'laporan' },
+    { label: 'Soal', to: '/admin/soal', utama: false, ikon: 'soal' },
+    { label: 'Langkah', to: '/admin/langkah', utama: false, ikon: 'langkah' },
   ],
   ustadz: [
-    { label: 'Sorogan', to: '/mulai', utama: true },
-    { label: 'Laporan', to: '/laporan', utama: true },
-    { label: 'Hasil', to: '/hasil', utama: true },
+    { label: 'Sorogan', to: '/mulai', utama: true, ikon: 'sorogan' },
+    { label: 'Laporan', to: '/laporan', utama: true, ikon: 'laporan' },
+    { label: 'Hasil', to: '/hasil', utama: true, ikon: 'hasil' },
     // Kenaikan turun ke sidebar: bottom nav HP muat nyaman max 4-5 item,
     // dan Sorogan+Laporan+Hasil dipakai tiap hari sedang Kenaikan musiman.
-    { label: 'Kenaikan', to: '/kenaikan', utama: false },
+    { label: 'Kenaikan', to: '/kenaikan', utama: false, ikon: 'kenaikan' },
   ],
   santri: [
-    { label: 'Nilai', to: '/santri/dashboard', utama: true },
+    { label: 'Nilai', to: '/santri/dashboard', utama: true, ikon: 'hasil' },
   ],
 }
 

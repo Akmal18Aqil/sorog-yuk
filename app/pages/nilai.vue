@@ -26,21 +26,21 @@ function akhiri() {
 <template>
   <!-- Ringkasan -->
   <section v-if="ringkasan">
-    <div class="kartu" style="text-align: center; padding: var(--space-8)">
-      <p style="font-size: var(--text-3xl); font-weight: 700; margin: 0; color: var(--primary)">{{ ringkasan.nilai ?? '—' }}</p>
-      <p class="text-muted text-sm" style="margin: var(--space-1) 0 0">{{ ringkasan.jml }} soal dinilai</p>
+    <div class="kartu text-center py-8">
+      <p class="angka">{{ ringkasan.nilai ?? '—' }}</p>
+      <p class="text-muted text-sm rapat mt-1">{{ ringkasan.jml }} soal dinilai</p>
     </div>
     <button class="utama" @click="navigateTo('/mulai')">Santri Berikutnya</button>
-    <button class="penuh" style="margin-top: var(--space-2)" @click="navigateTo('/hasil')">Lihat Hasil & Leger</button>
+    <button class="penuh mt-2" @click="navigateTo('/hasil')">Lihat Hasil & Leger</button>
   </section>
 
   <!-- Sesi Aktif -->
   <section v-else-if="sesi">
     <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="page-head">
       <div>
-        <h1 style="margin: 0; font-size: var(--text-lg)">{{ sesi.santri.nama }}</h1>
-        <p class="text-muted text-xs" style="margin: 2px 0 0">
+        <h1 class="page-title">{{ sesi.santri.nama }}</h1>
+        <p class="text-muted text-xs page-sub">
           {{ sesi.kelompok?.nama }} · soal {{ Math.min(sesi.ke + 1, target) }}/{{ target }}
         </p>
       </div>
@@ -48,9 +48,9 @@ function akhiri() {
     </div>
 
     <!-- Selesai -->
-    <div v-if="selesai" class="kartu" style="text-align: center; border-left: 3px solid var(--success)">
-      <p style="font-weight: 600; margin: 0">Semua soal selesai</p>
-      <p class="text-muted text-sm" style="margin: 4px 0 0">Nilai: {{ nilaiBerjalan ?? '—' }}</p>
+    <div v-if="selesai" class="kartu kartu-sukses text-center">
+      <p class="tegas">Semua soal selesai</p>
+      <p class="text-muted text-sm rapat mt-1">Nilai: {{ nilaiBerjalan ?? '—' }}</p>
     </div>
 
     <!-- BK1: KetukKata -->
@@ -64,14 +64,14 @@ function akhiri() {
     <!-- BK2: Soal + Tangga -->
     <template v-else>
       <div class="kartu">
-        <div class="arab" style="font-size: 1.75rem; padding: var(--space-2) 0">
+        <div class="arab soal-teks">
           <template v-for="(p, i) in potongan" :key="i">
             <mark v-if="p.sorot" class="soal-highlight">{{ p.kata }}</mark>
             <template v-else>{{ p.kata }}</template>
             {{ ' ' }}
           </template>
         </div>
-        <div class="text-muted text-xs" style="margin-top: var(--space-2)">
+        <div class="text-muted text-xs mt-2">
           <template v-if="sesi.soal.nomorBank">
             Soal #{{ sesi.soal.nomorBank }} · {{ LABEL_TIPE[sesi.soal.tipe] }}
           </template>
@@ -90,13 +90,14 @@ function akhiri() {
       />
     </template>
 
-    <button class="utama" style="margin-top: var(--space-4)" @click="akhiri">
+    <button class="utama mt-4" @click="akhiri">
       {{ selesai ? 'Selesai' : 'Sudahi Sesi Ini' }}
     </button>
   </section>
 </template>
 
 <style scoped>
+.soal-teks { font-size: 1.75rem; padding: var(--space-2) 0; }
 .soal-highlight {
   background: var(--primary);
   color: var(--teks-aksen);
