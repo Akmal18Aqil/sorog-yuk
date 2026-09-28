@@ -13,13 +13,25 @@ describe('navigasi', () => {
     const santri = navUntuk('santri').map(i => i.to)
 
     // Ancaman utama: tautan ke halaman yang tidak ada akan menampilkan
-    // layar kosong tanpa penjelasan.
-    expect(admin.every(p => p.startsWith('/admin'))).toBe(true)
-    expect(ustadz.every(p => ['/mulai', '/hasil', '/kenaikan'].includes(p))).toBe(true)
+    // layar kosong tanpa penjelasan. /laporan halaman bersama dua role,
+    // jadi dikecualikan dari keharusan berawalan /admin.
+    expect(admin.every(p => p.startsWith('/admin') || p === '/laporan')).toBe(true)
+    expect(ustadz.every(p => ['/mulai', '/laporan', '/hasil', '/kenaikan'].includes(p))).toBe(true)
     expect(santri).toEqual(['/santri/dashboard'])
 
+    // /laporan satu-satunya halaman yang boleh dimiliki dua role sekaligus.
     const semua = [...admin, ...ustadz, ...santri]
-    expect(new Set(semua).size).toBe(semua.length)   // tidak ada duplikat
+    const ganda = semua.filter((p, i) => semua.indexOf(p) !== i)
+    expect(ganda.every(p => p === '/laporan')).toBe(true)
+  })
+
+  it('laporan ada di sidebar superadmin tapi tidak memakan bottom nav', () => {
+    // Bottom nav superadmin sudah 5 item; laporan dibuka dari sidebar.
+    const semua = navUntuk('superadmin')
+    const laporan = semua.find(i => i.to === '/laporan')
+    expect(laporan).toBeTruthy()
+    expect(laporan!.utama).toBe(false)
+    expect(navUtama('superadmin').map(i => i.to)).not.toContain('/laporan')
   })
 
   it('bottom nav tidak lebih dari lima item', () => {

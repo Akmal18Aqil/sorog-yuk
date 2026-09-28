@@ -1,6 +1,25 @@
 import { TINGKAT, isTingkat, type Kelompok, type Tingkat } from '../types/sorogan'
 
 /**
+ * Status absen harian. Disepakati teks bebas untuk kendala, tapi status
+ * TETAP union tertutup: laporan walikelas menghitung H/I/S/A, dan string
+ * bebas ("hadirr", "Hadirr") akan memecah hitungan tanpa ketahuan.
+ */
+export const STATUS_HADIR = ['hadir', 'izin', 'sakit', 'alpa'] as const
+export type StatusHadir = (typeof STATUS_HADIR)[number]
+
+export const isStatusHadir = (v: string | null | undefined): v is StatusHadir =>
+  v === 'hadir' || v === 'izin' || v === 'sakit' || v === 'alpa'
+
+export const LABEL_STATUS: Record<StatusHadir, string> = {
+  hadir: 'Hadir',
+  izin: 'Izin',
+  sakit: 'Sakit',
+  alpa: 'Alpa',
+}
+
+
+/**
  * Kelompok itu milik kelas, bukan milik pesantren.
  *
  * Tiap kelas sorogan punya kelompoknya sendiri: BK1 punya Kelompok 1, 2, 3,

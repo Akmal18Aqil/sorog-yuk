@@ -14,6 +14,7 @@ import {
   isTingkat, isTipeSoal,
   type Ibarat, type Kelompok, type Langkah, type Santri, type Soal, type Ustadz,
 } from '#shared/types/sorogan'
+import { isStatusHadir, type StatusHadir } from '#shared/domain/kelompok'
 import type { JawabanLangkah } from '#shared/domain/nilai'
 
 export type Klien = SupabaseClient<Database>
@@ -91,6 +92,8 @@ export interface Acuan {
   ibarat: Ibarat[]
   kelompok: Kelompok[]
   anggota: { kelompok_id: number, santri_id: number }[]
+  /** Kelompok yang boleh dibuka ustadz ini. Kosong = semua terbuka. */
+  tugas: number[]
 }
 
 export async function ambilAcuan(sb: Klien): Promise<Acuan> {
@@ -98,7 +101,7 @@ export async function ambilAcuan(sb: Klien): Promise<Acuan> {
   // bisa terlewat. Santri nonaktif hilang dari daftar operasional, tapi
   // riwayatnya di halaman hasil tetap utuh -- halaman itu tidak lewat sini
   // (R1 + D1).
-  const [santri, soal, langkah, ibarat, kelompok, anggota] = await Promise.all([
+  const [santri, soal, langkah, ibarat, kelompok, anggota, tugas] = await Promise.all([
     sb.from('santri').select('*').eq('aktif', true).order('nama'),
     sb.from('soal').select('*').eq('tingkat', 'BK2'),
     sb.from('langkah').select('*').order('tipe').order('urutan'),
@@ -109,6 +112,10 @@ export async function ambilAcuan(sb: Klien): Promise<Acuan> {
     // muncul di KEDUA kelompok -- dan untuk penentzikan, itu berarti menilai
     // anak yang sudah tidak ada di rombel itu.
     sb.from('kelompok_santri').select('*').is('sampai', null),
+    // Scope tugas musrif. Gagal dibaca (mis. cache lama) = terbuka, bukan
+    // terkunci: lebih baik bisa menilai lalu ditolak server kalau salah,
+    // daripada terkunci total saat offline.
+    sb.from('tugas_kelompok').select('kelompok_id'),
   ])
   gagal(santri.error, 'santri')
   gagal(soal.error, 'bank soal')
@@ -124,6 +131,7 @@ export async function ambilAcuan(sb: Klien): Promise<Acuan> {
     ibarat: ibarat.data ?? [],
     kelompok: kelompok.data ?? [],
     anggota: anggota.data ?? [],
+    tugas: tugas.error ? [] : (tugas.data ?? []).map(t => t.kelompok_id),
   }
 }
 
@@ -158,6 +166,129 @@ export async function simpanPenilaian(sb: Klien, p: PayloadPenilaian): Promise<n
   return data as number
 }
 
+// ——————————————————————————— kehadiran (absen + kendala) ———————————————————————————
+
+/**
+ * Absen + kendala harian, grain per santri per hari.
+ * Dipanggil lewat antrean yang sama seperti penilaian: RPC-nya upsert,
+ * jadi kirim ulang tidak menggandakan.
+ */
+export async function catatHadir(sb: Klien, p: {
+  tanggal: string
+  santri_id: number
+  status: StatusHadir
+  kelompok_id?: number | null
+  kendala?: string | null
+}): Promise<number> {
+  if (!isStatusHadir(p.status)) throw new Error(`Status "${p.status}" tidak dikenal.`)
+  const { data, error } = await sb.rpc('catat_hadir', {
+    p_tanggal: p.tanggal, p_santri_id: p.santri_id, p_status: p.status,
+    ...(p.kelompok_id != null ? { p_kelompok_id: p.kelompok_id } : {}),
+    ...(p.kendala != null && p.kendala.trim() ? { p_kendala: p.kendala.trim() } : {}),
+  })
+  if (error) throw new Error(error.message)
+  return data as number
+}
+
+/** Kehadiran satu kelompok hari ini, untuk chip absen di /mulai. */
+export async function ambilHadirHariIni(
+  sb: Klien, kelompokId: number, tanggal: string,
+): Promise<Map<number, { status: string; kendala: string | null }>> {
+  const { data, error } = await sb.from('kehadiran')
+    .select('santri_id,status,kendala')
+    .eq('kelompok_id', kelompokId).eq('tanggal', tanggal)
+  if (error) throw new Error(error.message)
+  return new Map((data ?? []).map(r => [r.santri_id, { status: r.status, kendala: r.kendala }]))
+}
+
+// ——————————————————————————— tugas musrif ———————————————————————————
+
+/** Ganti total daftar musrif yang memegang 1 kelompok. Superadmin saja. */
+export async function aturTugas(sb: Klien, kelompokId: number, ustadzIds: number[]): Promise<void> {
+  const { error } = await sb.rpc('atur_tugas', { p_kelompok_id: kelompokId, p_ustadz_ids: ustadzIds })
+  if (error) throw new Error(error.message)
+}
+
+/** Seluruh penugasan, untuk picker di /admin/kelompok. */
+export async function ambilSemuaTugas(sb: Klien): Promise<{ kelompok_id: number; ustadz_id: number }[]> {
+  const { data, error } = await sb.from('tugas_kelompok').select('kelompok_id,ustadz_id')
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+// ——————————————————————————— laporan ———————————————————————————
+
+export type BarisLaporan = Tables<'v_laporan_sorogan'>
+
+/**
+ * Laporan walikelas/kurikulum. Satu view, tiga filter client:
+ * semester x BK x rentang tanggal. Tanpa filter = semua anak aktif.
+ * Urut: semester (null paling bawah) -> urutan BK -> nama.
+ */
+export async function ambilLaporan(sb: Klien): Promise<BarisLaporan[]> {
+  const { data, error } = await sb.from('v_laporan_sorogan').select('*')
+  if (error) throw new Error(error.message)
+  return (data ?? []).sort((a, b) =>
+    (a.semester ?? 999) - (b.semester ?? 999)
+    || (a.bk_urutan ?? 999) - (b.bk_urutan ?? 999)
+    || (a.nama ?? '').localeCompare(b.nama ?? ''))
+}
+
+export interface RekapMusrif {
+  ustadz_id: number; nama: string; jml_sesi: number; sesi_bulan_ini: number;
+  terakhir_aktif: string | null; jml_hadir: number; jml_kendala: number
+}
+
+/**
+ * Rekap aktivitas per musrif — khusus superadmin.
+ *
+ * Hanya yang PUNYA aktivitas yang tampil (rekap kerja, bukan daftar pegawai).
+ * Pemisah role-nya di `laporan.vue` (hanya dimuat bila role superadmin),
+ * bukan di sini: RLS `sesi` memang memperbolehkan ustadz membaca semua sesi
+ * untuk kalibrasi, jadi fungsi ini tidak boleh dipanggil dari halaman musrif.
+ *
+ * ponytail: pindai penuh `sesi` + `kehadiran` lalu agregasi di client. Cukup
+ * untuk ratusan baris; bila ribuan, pindah ke RPC agregasi server.
+ */
+export async function ambilRekapMusrif(sb: Klien, bulan: string): Promise<RekapMusrif[]> {
+  const [s, h, u] = await Promise.all([
+    sb.from('sesi').select('ustadz_id,tanggal'),
+    sb.from('kehadiran').select('ustadz_id,kendala'),
+    sb.from('ustadz').select('id,nama'),
+  ])
+  gagal(s.error, 'rekap sesi')
+  gagal(h.error, 'rekap kehadiran')
+  gagal(u.error, 'daftar musrif')
+
+  const nama = new Map((u.data ?? []).map(r => [r.id, r.nama]))
+  const agg = new Map<number, RekapMusrif>()
+  const pastikan = (id: number): RekapMusrif => {
+    let m = agg.get(id)
+    if (!m) {
+      m = {
+        ustadz_id: id, nama: nama.get(id) ?? `#${id}`,
+        jml_sesi: 0, sesi_bulan_ini: 0, terakhir_aktif: null, jml_hadir: 0, jml_kendala: 0,
+      }
+      agg.set(id, m)
+    }
+    return m
+  }
+  for (const r of s.data ?? []) {
+    const m = pastikan(r.ustadz_id)
+    m.jml_sesi += 1
+    if (r.tanggal.startsWith(bulan)) m.sesi_bulan_ini += 1
+    if (!m.terakhir_aktif || r.tanggal > m.terakhir_aktif) m.terakhir_aktif = r.tanggal
+  }
+  for (const r of h.data ?? []) {
+    const m = pastikan(r.ustadz_id)
+    m.jml_hadir += 1
+    if (r.kendala?.trim()) m.jml_kendala += 1
+  }
+  return [...agg.values()].sort((a, b) =>
+    b.jml_sesi - a.jml_sesi || a.nama.localeCompare(b.nama))
+}
+
+// ————————————————————————————————————————————————————————
 // ——————————————————————————————— laporan ———————————————————————————————
 
 export interface Diagnostik {

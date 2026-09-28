@@ -5,6 +5,7 @@ import { hanyaSuperadmin } from '~/utils/nav'
  *
  * Cek role user → redirect ke route yang sesuai:
  *  - /admin/* dan /super-adminn → harus superadmin
+ *  - /laporan → musrif DAN superadmin (halaman bersama, lihat pengecualian)
  *  - /mulai, /nilai, /hasil, /kenaikan → harus ustadz
  *  - /santri/* → harus santri
  *
@@ -30,6 +31,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
 })
 
 function redirectIfWrongRole(role: string, path: string) {
+  // /laporan halaman BERSAMA musrif dan superadmin. Dicek SEBELUM cabang role
+  // mana pun, supaya superadmin tidak terpental ke /admin.
+  if (path === '/laporan' && (role === 'ustadz' || role === 'superadmin')) return
+
   // Admin routes. `/super-adminn` ikut di sini walau tidak berawalan `/admin`
   // -- soal-alasannya ditulis di `utils/nav.ts`.
   if (hanyaSuperadmin(path)) {
@@ -43,7 +48,7 @@ function redirectIfWrongRole(role: string, path: string) {
     return
   }
 
-  // Ustadz routes (mulai, nilai, hasil, kenaikan)
+  // Ustadz routes (mulai, nilai, hasil, kenaikan — laporan sudah ditangani di atas)
   if (role !== 'ustadz') {
     if (role === 'superadmin') return navigateTo('/admin')
     if (role === 'santri') return navigateTo('/santri/dashboard')

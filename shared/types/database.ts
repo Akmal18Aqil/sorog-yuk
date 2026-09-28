@@ -63,6 +63,25 @@ export type Database = {
           { foreignKeyName: 'kelompok_santri_santri_id_fkey'; columns: ['santri_id']; isOneToOne: false; referencedRelation: 'santri'; referencedColumns: ['id'] },
         ]
       }
+      kehadiran: {
+        Row: { dibuat_pada: string; id: number; kelompok_id: number | null; kendala: string | null; santri_id: number; status: string; tanggal: string; ustadz_id: number }
+        Insert: { dibuat_pada?: string; id?: never; kelompok_id?: number | null; kendala?: string | null; santri_id: number; status?: string; tanggal?: string; ustadz_id: number }
+        Update: { dibuat_pada?: string; id?: never; kelompok_id?: number | null; kendala?: string | null; santri_id?: number; status?: string; tanggal?: string; ustadz_id?: number }
+        Relationships: [
+          { foreignKeyName: 'kehadiran_kelompok_id_fkey'; columns: ['kelompok_id']; isOneToOne: false; referencedRelation: 'kelompok'; referencedColumns: ['id'] },
+          { foreignKeyName: 'kehadiran_santri_id_fkey'; columns: ['santri_id']; isOneToOne: false; referencedRelation: 'santri'; referencedColumns: ['id'] },
+          { foreignKeyName: 'kehadiran_ustadz_id_fkey'; columns: ['ustadz_id']; isOneToOne: false; referencedRelation: 'ustadz'; referencedColumns: ['id'] },
+        ]
+      }
+      tugas_kelompok: {
+        Row: { kelompok_id: number; ustadz_id: number }
+        Insert: { kelompok_id: number; ustadz_id: number }
+        Update: { kelompok_id?: number; ustadz_id?: number }
+        Relationships: [
+          { foreignKeyName: 'tugas_kelompok_kelompok_id_fkey'; columns: ['kelompok_id']; isOneToOne: false; referencedRelation: 'kelompok'; referencedColumns: ['id'] },
+          { foreignKeyName: 'tugas_kelompok_ustadz_id_fkey'; columns: ['ustadz_id']; isOneToOne: false; referencedRelation: 'ustadz'; referencedColumns: ['id'] },
+        ]
+      }
       kenaikan: {
         Row: { catatan: string | null; dari_kelas: string; diputuskan_oleh: number; diputuskan_pada: string; disetujui: boolean; id: number; ke_kelas: string; memenuhi_ambang: boolean; nilai_offline: number | null; nilai_online: number | null; santri_id: number }
         Insert: { catatan?: string | null; dari_kelas: string; diputuskan_oleh: number; diputuskan_pada?: string; disetujui: boolean; id?: never; ke_kelas: string; memenuhi_ambang: boolean; nilai_offline?: number | null; nilai_online?: number | null; santri_id: number }
@@ -165,6 +184,10 @@ export type Database = {
         Row: { langkah_dijawab: number | null; nilai: number | null; penilaian_id: number | null; santri_id: number | null; sesi_id: number | null; soal_id: number | null; tingkat: string | null; tipe: string | null }
         Relationships: []
       }
+      v_laporan_sorogan: {
+        Row: { santri_id: number | null; kode: string | null; nama: string | null; semester: number | null; bk: string | null; bk_urutan: number | null; kelompok_id: number | null; kelompok_nama: string | null; nilai_terakhir: number | null; tanggal_nilai: string | null; status_terakhir: string | null; kendala_terakhir: string | null; tanggal_hadir: string | null; dicatat_oleh: string | null }
+        Relationships: []
+      }
       v_soal_sulit: {
         Row: { dikerjakan: number | null; nilai: number | null; nomor_bank: number | null; soal_id: number | null; teks: string | null; tipe: string | null }
         Relationships: []
@@ -194,6 +217,8 @@ export type Database = {
       set_aktif_santri: { Args: { p_aktif: boolean; p_id: number }; Returns: undefined }
       set_aktif_ustadz: { Args: { p_aktif: boolean; p_id: number }; Returns: undefined }
       tautkan_akun: { Args: { p_auth_id: string; p_id: number; p_jenis: string }; Returns: undefined }
+      catat_hadir: { Args: { p_kelompok_id?: number | null; p_kendala?: string | null; p_santri_id: number; p_status: string; p_tanggal: string }; Returns: number }
+      atur_tugas: { Args: { p_kelompok_id: number; p_ustadz_ids: number[] }; Returns: undefined }
       simpan_penilaian: { Args: { p_ibarat_id?: number; p_jawaban: Json; p_kelompok_id?: number; p_lafad?: string; p_mode: string; p_santri_id: number; p_soal_id?: number; p_tanggal: string; p_urutan: number }; Returns: number }
       tambah_anggota_kelompok: { Args: { p_kelompok_id: number; p_santri_id: number }; Returns: undefined }
       tambah_kelas: { Args: { p_ambang_offline?: number; p_ambang_online?: number; p_kode: string; p_nama: string; p_urutan: number }; Returns: number }

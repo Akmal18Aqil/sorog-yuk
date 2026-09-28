@@ -23,13 +23,19 @@ const NAV: Record<Role, ItemNav[]> = {
     { label: 'Kelas Kuliah', to: '/admin/kelas-kuliah', utama: false },
     { label: 'Kelompok', to: '/admin/kelompok', utama: true },
     { label: 'Kitab', to: '/admin/kitab', utama: true },
+    // Laporan dipakai BERSAMA musrif (satu halaman /laporan, dibuka superadmin
+    // lewat pengecualian di middleware). Sidebar saja: bottom nav sudah 5 item.
+    { label: 'Laporan', to: '/laporan', utama: false },
     { label: 'Soal', to: '/admin/soal', utama: false },
     { label: 'Langkah', to: '/admin/langkah', utama: false },
   ],
   ustadz: [
-    { label: 'Mulai', to: '/mulai', utama: true },
+    { label: 'Sorogan', to: '/mulai', utama: true },
+    { label: 'Laporan', to: '/laporan', utama: true },
     { label: 'Hasil', to: '/hasil', utama: true },
-    { label: 'Kenaikan', to: '/kenaikan', utama: true },
+    // Kenaikan turun ke sidebar: bottom nav HP muat nyaman max 4-5 item,
+    // dan Sorogan+Laporan+Hasil dipakai tiap hari sedang Kenaikan musiman.
+    { label: 'Kenaikan', to: '/kenaikan', utama: false },
   ],
   santri: [
     { label: 'Nilai', to: '/santri/dashboard', utama: true },

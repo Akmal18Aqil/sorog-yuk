@@ -594,5 +594,11 @@ td.kiri, th.kiri { text-align: left; }
   body { background: #fff; color: #000; }
   .nocetak { display: none !important; }
   .bottom-nav { display: none !important; }
+  /* Kerangka aplikasi tidak ikut cetak: sidebar + tombol keluar + toast + antrean.
+     Tanpa ini hasil cetak jadi dua kolom (screenshot: sidebar kiri, tabel terjepit
+     kanan). Konten dibuat satu kolom penuh selebar kertas. */
+  .sidebar { display: none !important; }
+  .app-shell { display: block; min-height: auto; }
+  .app-main { display: block; padding: 0; max-width: none; }
   th, td { border: 1px solid #000; }
 }
