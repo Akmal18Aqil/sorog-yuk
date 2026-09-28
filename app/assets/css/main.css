@@ -171,6 +171,12 @@ h2 { font-size: var(--text-lg); font-weight: 600; margin: var(--space-5) 0 var(-
 .arab {
   font-family: 'Traditional Arabic', 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', serif;
   direction: rtl; text-align: right; line-height: 2.1;
+  /* Satu kata Arab yang lebih panjang dari layar harus dipotong, bukan
+     menghilang. Tanpa ini, teksnya meluber ke KIRI (arah RTL) -- dan luapan
+     ke kiri tidak menambah scrollWidth, jadi tidak ada cara mencarinya:
+     hurufnya hilang begitu saja di layar 360px. Terukur: konten 312px di
+     kotak 241px. */
+  overflow-wrap: break-word;
 }
 
 /* --- Cards --- */
@@ -330,6 +336,30 @@ textarea { resize: vertical; min-height: 80px; }
 .list-item-title { font-weight: 600; font-size: var(--text-base); color: var(--text); text-decoration: none; }
 .list-item-sub { font-size: var(--text-sm); color: var(--muted); margin: 2px 0 0; }
 .list-item-actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
+/* Di HP, 5 tombol aksi ("Kode/Edit/Lepas/Nonaktifkan/Hapus") tidak muat satu
+   baris: konten jadi 431px di dalam kartu 288px, jadi terpotong dan
+   "Hapus" -- yang paling penting -- tidak terlihat. Membungkus ke baris
+   bawah adalah satu-satunya yang tidak menyembunyikan tombol. */
+@media (max-width: 560px) {
+  .list-item { flex-wrap: wrap; }
+  .list-item-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    padding: 0 var(--space-4) var(--space-3);
+  }
+}
+
+/* --- Bilah: judul + aksi dalam satu baris (header Santri) --- */
+/* `.bilah` dipakai di dashboard Santri tapi tidak pernah ada di stylesheet,
+   jadi judul dan "Keluar" turun berurutan tanpa alasan -- di HP pun tidak,
+   karena ruangnya masih plenty. */
+.bilah {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
 
 /* --- Section --- */
 .section { margin-bottom: var(--space-6); }
@@ -405,11 +435,29 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 /* --- Tabs --- */
+/* Tiga hal yang harus benar sekaligus, dan alasannya saling terkait:
+   1. Label TIDAK boleh pecah dua baris (`nowrap`).
+   2. Di HP tab dibagi rata (`flex: 1`, jangkauan jari); di desktop tab cukup
+      selebar isinya -- `flex: 1` HARUS ikut dilepas di sana, karena basis 0
+      berarti min-content begitu wadahnya sempit.
+   3. Kalau rombel banyak, tab bergulir DI DALAM kotaknya. Tanpanya, satu
+      baris `nowrap` memaksa seluruh HALAMAN jadi ~1600px, termasuk di HP
+      yang tidak bisa menggulir mendatar (terukur: 1604px di layar 360px).
+      Karena itu wadahnya `width: 100%` -- bukan `fit-content`, yang justru
+      menyusut ikut isi sehingga `overflow-x` tidak pernah aktif. */
 .tabs {
   display: flex; gap: var(--space-1);
   background: var(--bg); border-radius: var(--radius-md);
   padding: 3px; margin-bottom: var(--space-4);
+  width: 100%; justify-content: center;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  /* Scrollbar disembunyikan, kemampuan scroll tetap ada (swipe di HP
+     jalan), dan halaman tidak ikut terseret saat tab digeser sampai ujung. */
+  scrollbar-width: thin;
 }
+.tabs:not(:hover) { scrollbar-width: none; }
+.tabs::-webkit-scrollbar { height: 0; }
+
 .tab {
   flex: 1; padding: 10px var(--space-3);
   border-radius: var(--radius-sm); border: none;
@@ -421,18 +469,20 @@ textarea { resize: vertical; min-height: 80px; }
      tinggal satu kata sebelum pecah, dan tinggi baris ikut bergeser. */
   white-space: nowrap;
 }
-/* Di layar lebar, tab selebar 1200px membuat "Ujian" jadi tombol raksasa
-   dengan dua huruf di tengahnya. Tapi `flex: 1` juga HARUS dihapus di sini,
-   bukan hanya ukuran wadahnya: `flex: 1` berarti basis 0, jadi begitu
-   wadahnya dikecilkan (`fit-content`) setiap tab jatuh ke min-content dan
-   teksnya pecah jadi dua baris. */
-@media (min-width: 900px) {
-  .tabs { width: fit-content; max-width: 100%; }
-  .tab { flex: 0 0 auto; }
-}
 .tab.active {
   background: var(--surface); color: var(--text);
   box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 899px) {
+  /* Di HP tidak dipusatkan: `flex: 1` sudah membagi rata. */
+  .tabs { justify-content: flex-start; }
+}
+@media (min-width: 900px) {
+  /* Tab selebar 1200px membuat "Ujian" jadi tombol raksasa dengan dua huruf
+     di tengahnya. */
+  .tabs { max-width: 100%; }
+  .tab { flex: 0 0 auto; }
 }
 
 /* --- Search Input --- */
@@ -487,8 +537,10 @@ td.kiri, th.kiri { text-align: left; }
 /* --- Utilities --- */
 /* Shell A (HP) dan shell B (desktop) punya tempat logout masing-masing:
    sidebar di desktop, header halaman di HP. Tombol yang ada di dua-duanya
-   hanya bikin ragu ("keluar dua kali?"), jadi util ini untuk memilih satu. */
-.hanya-hp { display: block; }
+   hanya bikin ragu ("keluar dua kali?"), jadi util ini untuk memilih satu.
+   Sengaja TIDAK menyetel `display` di keadaan dasar: elemen yang dipakai bisa
+   saja `display: flex` (mis. `.baris-tengah`), dan aturan di sini letaknya
+   lebih bawah sehingga akan menimpanya. */
 @media (min-width: 900px) { .hanya-hp { display: none; } }
 .text-center { text-align: center; }
 .text-right { text-align: right; }

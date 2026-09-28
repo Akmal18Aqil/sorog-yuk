@@ -47,7 +47,7 @@ function formatNilai(v: number | null): string {
         <h1 style="margin: 0">{{ santri?.nama ?? 'Santri' }}</h1>
         <p class="redup" style="margin: 0">{{ santri?.tingkat }}</p>
       </div>
-      <button class="kecil" @click="keluar">Keluar</button>
+      <button class="kecil hanya-hp" @click="keluar">Keluar</button>
     </div>
 
     <p v-if="galat" class="galat">{{ galat }}</p>

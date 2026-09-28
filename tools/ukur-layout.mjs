@@ -82,8 +82,13 @@ await kirim('Runtime.enable')
 
 console.log('lebar  scrollW  overflow  sidebar  bottomNav  appMain  yang melewati kanan')
 for (const w of LEBAR) {
+  // `mobile: false` WAJIB. Dengan `mobile: true`, Edge mengunci lebar layout
+  // ke 980px (viewport HP "ideal"), jadi setiap ukuran di bawah 900px
+  // dilaporkan sebagai 980px -- dan seluruh pemeriksaan HP jadi bohong:
+  // luapan di 320px tidak pernah kelihatan. Yang diuji di sini adalah CSS
+  // kita pada lebar tertentu, bukan perilaku zoom HP.
   await kirim('Emulation.setDeviceMetricsOverride', {
-    width: w, height: 800, deviceScaleFactor: 1, mobile: w < 900,
+    width: w, height: 800, deviceScaleFactor: 1, mobile: false,
   })
   await kirim('Page.navigate', { url: URL })
   await tidur(2200)

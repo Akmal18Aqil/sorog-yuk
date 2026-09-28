@@ -34,7 +34,9 @@ const menu = [
         <h1 style="margin: 0">Dashboard</h1>
         <p class="subtitle" style="margin: 4px 0 0">Kelola data pesantren</p>
       </div>
-      <div class="baris-tengah">
+      <!-- Tema dan Keluar ada di sidebar saat desktop; di HP sidebar tidak
+           tampil, jadi keduanya hanya muncul di sini pada layar sempit. -->
+      <div class="baris-tengah hanya-hp">
         <button class="kecil" @click="toggle" :title="theme === 'dark' ? 'Mode terang' : 'Mode gelap'">
           {{ theme === 'dark' ? '☀️' : '🌙' }}
         </button>
